@@ -1,0 +1,6 @@
+Binaries/
+Saved/
+enc_temp_folder/
+.vs/
+*.db
+*.opendb
