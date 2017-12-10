@@ -1,5 +1,6 @@
 Binaries/
 Saved/
+Intermediate/
 enc_temp_folder/
 .vs/
 *.db

@@ -1,3 +1,0 @@
-C:\Users\Remuth\Documents\Unreal Projects\LogicBlocks\Source\LogicBlocks\LogicBlocks.Build.cs
-C:\Users\Remuth\Documents\Unreal Projects\LogicBlocks\Source\LogicBlocks.Target.cs
-C:\Users\Remuth\Documents\Unreal Projects\LogicBlocks\Source\LogicBlocksEditor.Target.cs
