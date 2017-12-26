@@ -37,7 +37,7 @@ public:
 		m_detailLayout = &DetailLayout;
 
 		// GET POINTER TO SELECTED COMPONENT
-		const TArray< TWeakObjectPtr<UObject> >& selectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+		const TArray< TWeakObjectPtr<UObject> >& selectedObjects = DetailLayout.GetDetailsView()->GetSelectedObjects();
 		m_selectedComponent = nullptr;
 		for (int32 ObjectIndex = 0; ObjectIndex < selectedObjects.Num(); ++ObjectIndex)
 		{
@@ -119,7 +119,7 @@ public:
 
 					TArray<UObject*> a;
 					a.Add(logicBlock);
-					IDetailPropertyRow* propertyRow = inputsCategory.AddExternalProperty(a, TestProperty->GetFName());
+					IDetailPropertyRow* propertyRow = inputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
 
 					TSharedPtr<SWidget> nameWidget;
 					TSharedPtr<SWidget> valueWidget;
@@ -188,7 +188,7 @@ public:
 
 					TArray<UObject*> a;
 					a.Add(logicBlock);
-					IDetailPropertyRow* propertyRow = outputsCategory.AddExternalProperty(a, TestProperty->GetFName());
+					IDetailPropertyRow* propertyRow = outputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
 
 					TSharedPtr<SWidget> nameWidget;
 					TSharedPtr<SWidget> valueWidget;

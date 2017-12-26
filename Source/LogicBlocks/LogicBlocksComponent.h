@@ -46,7 +46,7 @@ class LOGICBLOCKS_API ULogicBlocksComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	ULogicBlocksComponent();
-	~ULogicBlocksComponent();
+	virtual ~ULogicBlocksComponent();
 
 protected:
 	// Called when the game starts
