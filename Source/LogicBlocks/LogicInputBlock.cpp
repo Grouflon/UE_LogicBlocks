@@ -9,3 +9,8 @@ ALogicInputBlock::ALogicInputBlock()
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }
+
+bool ALogicInputBlock::Evaluate_Implementation()
+{
+	return true;
+}

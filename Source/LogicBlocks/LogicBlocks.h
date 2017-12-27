@@ -4,3 +4,9 @@
 
 #include "CoreMinimal.h"
 
+class FLogicBlocksModuleImpl : public FDefaultGameModuleImpl
+{
+public:
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+};

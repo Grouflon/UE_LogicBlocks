@@ -13,8 +13,7 @@ ULogicBlocksComponent::ULogicBlocksComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	bTickInEditor = true;
 }
 
 
@@ -38,21 +37,72 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+#if WITH_EDITOR
+	if (GetWorld()->WorldType == EWorldType::Editor)
+	{
+		// GARBAGE COLLECTION
+		for (int32 i = m_logicInputs.Num() - 1; i >= 0; --i)
+		{
+			if (m_logicInputs[i].Get() == nullptr)
+			{
+				m_logicInputs.RemoveAt(i);
+			}
+		}
+
+		for (int32 i = m_logicOutputs.Num() - 1; i >= 0; --i)
+		{
+			if (m_logicOutputs[i].Get() == nullptr)
+			{
+				m_logicOutputs.RemoveAt(i);
+			}
+		}
+	}
+	else
+	{
+#endif
+
+	bool validity = true;
+	for (auto input : m_logicInputs)
+	{
+		validity = validity && input->Evaluate();
+		if (!validity)
+			break;
+	}
+
+	if (validity && !m_previousValidity)
+	{
+		for (auto output : m_logicOutputs)
+		{
+			output->ValidityBegin();
+		}
+	}
+
+	if (validity)
+	{
+		for (auto output : m_logicOutputs)
+		{
+			output->ValidityTick(DeltaTime);
+		}
+	}
+
+	if (!validity && m_previousValidity)
+	{
+		for (auto output : m_logicOutputs)
+		{
+			output->ValidityEnd();
+		}
+	}
+
+	m_previousValidity = validity;
+
+#if WITH_EDITOR
+	}
+#endif
 }
 
 void ULogicBlocksComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	for (ALogicInputBlock* block : m_logicInputs)
-	{
-		block->OnDestroyed.RemoveDynamic(this, &ULogicBlocksComponent::_OnInputBlockDestroyed);
-	}
 	m_logicInputs.Empty();
-
-	for (ALogicOutputBlock* block : m_logicOutputs)
-	{
-		block->OnDestroyed.RemoveDynamic(this, &ULogicBlocksComponent::_OnOutputBlockDestroyed);
-	}
 	m_logicOutputs.Empty();
 }
 
@@ -68,7 +118,7 @@ void ULogicBlocksComponent::CreateInput(TSubclassOf<ALogicInputBlock> _logicInpu
 	inputBlock->AttachToActor(GetOwner(), FAttachmentTransformRules::SnapToTargetIncludingScale);
 	m_logicInputs.Add(inputBlock);
 
-	inputBlock->OnDestroyed.AddDynamic(this, &ULogicBlocksComponent::_OnInputBlockDestroyed);
+	PrimaryComponentTick.AddPrerequisite(inputBlock, inputBlock->PrimaryActorTick);
 }
 
 void ULogicBlocksComponent::CreateOutput(TSubclassOf<ALogicOutputBlock> _logicOutputBlockClass)
@@ -82,33 +132,45 @@ void ULogicBlocksComponent::CreateOutput(TSubclassOf<ALogicOutputBlock> _logicOu
 	outputBlock->AttachToActor(GetOwner(), FAttachmentTransformRules::SnapToTargetIncludingScale);
 	m_logicOutputs.Add(outputBlock);
 
-	outputBlock->OnDestroyed.AddDynamic(this, &ULogicBlocksComponent::_OnOutputBlockDestroyed);
+	outputBlock->PrimaryActorTick.AddPrerequisite(this, PrimaryComponentTick);
 }
 
-const TArray<ALogicInputBlock*>& ULogicBlocksComponent::GetInputBlocks() const
+void ULogicBlocksComponent::RemoveInput(ALogicInputBlock* _input)
+{
+	check(m_logicInputs.Find(_input) != INDEX_NONE);
+
+	PrimaryComponentTick.RemovePrerequisite(_input, _input->PrimaryActorTick);
+
+	int32 ret = m_logicInputs.Remove(_input);
+	check(ret == 1);
+
+	_input->Destroy();
+}
+
+void ULogicBlocksComponent::RemoveOutput(ALogicOutputBlock* _output)
+{
+	check(m_logicOutputs.Find(_output) != INDEX_NONE);
+
+	_output->PrimaryActorTick.RemovePrerequisite(this, PrimaryComponentTick);
+
+	int32 ret = m_logicOutputs.Remove(_output);
+	check(ret == 1);
+
+	_output->Destroy();
+}
+
+const TArray < TWeakObjectPtr<ALogicInputBlock>>& ULogicBlocksComponent::GetInputBlocks() const
 {
 	return m_logicInputs;
 }
 
-const TArray<ALogicOutputBlock*>& ULogicBlocksComponent::GetOutputBlocks() const
+const TArray<TWeakObjectPtr<ALogicOutputBlock>>& ULogicBlocksComponent::GetOutputBlocks() const
 {
 	return m_logicOutputs;
 }
 
-void ULogicBlocksComponent::_OnInputBlockDestroyed(AActor * _destroyedActor)
+void ULogicBlocksComponent::_EditorTick(float _deltaTime)
 {
-	ALogicInputBlock* block = Cast<ALogicInputBlock>(_destroyedActor);
-	check(block);
-	int32 ret = m_logicInputs.Remove(block);
-	check(ret == 1);
-	_destroyedActor->OnDestroyed.RemoveDynamic(this, &ULogicBlocksComponent::_OnInputBlockDestroyed);
+
 }
 
-void ULogicBlocksComponent::_OnOutputBlockDestroyed(AActor * _destroyedActor)
-{
-	ALogicOutputBlock* block = Cast<ALogicOutputBlock>(_destroyedActor);
-	check(block);
-	int32 ret = m_logicOutputs.Remove(block);
-	check(ret == 1);
-	_destroyedActor->OnDestroyed.RemoveDynamic(this, &ULogicBlocksComponent::_OnOutputBlockDestroyed);
-}

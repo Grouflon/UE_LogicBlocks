@@ -59,18 +59,22 @@ public:
 
 	void CreateInput(TSubclassOf<ALogicInputBlock> _logicInputBlockClass);
 	void CreateOutput(TSubclassOf<ALogicOutputBlock> _logicOutputBlockClass);
-		
-	const TArray<ALogicInputBlock*>& GetInputBlocks() const;
-	const TArray<ALogicOutputBlock*>& GetOutputBlocks() const;
 
+	void RemoveInput(ALogicInputBlock* _input);
+	void RemoveOutput(ALogicOutputBlock* _output);
+		
+	const TArray<TWeakObjectPtr<ALogicInputBlock>>& GetInputBlocks() const;
+	const TArray<TWeakObjectPtr<ALogicOutputBlock>>& GetOutputBlocks() const;
+
+	// NOTE: Could move to details customization
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicInputBlock> LogicInputBlockClass;
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicOutputBlock> LogicOutputBlockClass;
 
 private:
-	UFUNCTION() void _OnInputBlockDestroyed(AActor* _destroyedActor);
-	UFUNCTION() void _OnOutputBlockDestroyed(AActor* _destroyedActor);
+	void _EditorTick(float _deltaTime);
 
-	UPROPERTY() TArray<ALogicInputBlock*> m_logicInputs;
-	UPROPERTY() TArray<ALogicOutputBlock*> m_logicOutputs;
-	
+	UPROPERTY() TArray<TWeakObjectPtr<ALogicInputBlock>> m_logicInputs;
+	UPROPERTY() TArray<TWeakObjectPtr<ALogicOutputBlock>> m_logicOutputs;
+
+	bool m_previousValidity = false;
 };

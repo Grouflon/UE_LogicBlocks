@@ -14,10 +14,12 @@ class LOGICBLOCKS_API ALogicOutputBlock : public AActor
 public:	
 	ALogicOutputBlock();
 
-	UFUNCTION(BlueprintImplementableEvent) void ValidityStart();
-	UFUNCTION(BlueprintImplementableEvent) void ValidityTick(float DeltaTime);
-	UFUNCTION(BlueprintImplementableEvent) void ValidityStop();
+	UFUNCTION(BlueprintNativeEvent) void ValidityBegin();
+	UFUNCTION(BlueprintNativeEvent) void ValidityTick(float DeltaTime);
+	UFUNCTION(BlueprintNativeEvent) void ValidityEnd();
 
-	UPROPERTY(EditAnywhere) float m_param1 = 0.0f;
-	UPROPERTY(EditAnywhere) float m_param2 = 0.0f;
+protected:
+	virtual void ValidityBegin_Implementation();
+	virtual void ValidityTick_Implementation(float _deltaTime);
+	virtual void ValidityEnd_Implementation();
 };

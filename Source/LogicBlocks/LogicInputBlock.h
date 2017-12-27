@@ -14,9 +14,9 @@ class LOGICBLOCKS_API ALogicInputBlock : public AActor
 public:	
 	ALogicInputBlock();
 
-	UFUNCTION(BlueprintImplementableEvent) bool CheckInput();
+	UFUNCTION(BlueprintNativeEvent) bool Evaluate();
 
-	UPROPERTY(EditAnywhere, Category = "Logic") float m_param1 = 0.0f;
-	UPROPERTY(EditAnywhere, Category = "Logic") float m_param2 = 0.0f;
-	
+
+protected:
+	virtual bool Evaluate_Implementation();
 };
