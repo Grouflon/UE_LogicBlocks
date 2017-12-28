@@ -10,17 +10,17 @@ ALogicOutputBlock::ALogicOutputBlock()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }
 
-void ALogicOutputBlock::ValidityBegin_Implementation()
+void ALogicOutputBlock::BeginValidity_Implementation()
 {
 
 }
 
-void ALogicOutputBlock::ValidityTick_Implementation(float _deltaTime)
+void ALogicOutputBlock::TickValidity_Implementation(float _deltaTime)
 {
 
 }
 
-void ALogicOutputBlock::ValidityEnd_Implementation()
+void ALogicOutputBlock::EndValidity_Implementation()
 {
 
 }

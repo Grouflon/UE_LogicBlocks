@@ -6,6 +6,8 @@
 
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
+#include <LogicGraph.h>
+#include <LogicGraphSchema.h>
 
 // Sets default values for this component's properties
 ULogicBlocksComponent::ULogicBlocksComponent()
@@ -14,6 +16,9 @@ ULogicBlocksComponent::ULogicBlocksComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
+
+	m_logicGraph = CreateDefaultSubobject<ULogicGraph>(TEXT("LogicGraph"));
+	m_logicGraph->Schema = ULogicGraphSchema::StaticClass();
 }
 
 
@@ -31,7 +36,6 @@ void ULogicBlocksComponent::BeginPlay()
 	
 }
 
-
 // Called every frame
 void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -40,22 +44,7 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 #if WITH_EDITOR
 	if (GetWorld()->WorldType == EWorldType::Editor)
 	{
-		// GARBAGE COLLECTION
-		for (int32 i = m_logicInputs.Num() - 1; i >= 0; --i)
-		{
-			if (m_logicInputs[i].Get() == nullptr)
-			{
-				m_logicInputs.RemoveAt(i);
-			}
-		}
-
-		for (int32 i = m_logicOutputs.Num() - 1; i >= 0; --i)
-		{
-			if (m_logicOutputs[i].Get() == nullptr)
-			{
-				m_logicOutputs.RemoveAt(i);
-			}
-		}
+		_EditorTick(DeltaTime);
 	}
 	else
 	{
@@ -73,7 +62,7 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	{
 		for (auto output : m_logicOutputs)
 		{
-			output->ValidityBegin();
+			output->BeginValidity();
 		}
 	}
 
@@ -81,7 +70,7 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	{
 		for (auto output : m_logicOutputs)
 		{
-			output->ValidityTick(DeltaTime);
+			output->TickValidity(DeltaTime);
 		}
 	}
 
@@ -89,7 +78,7 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	{
 		for (auto output : m_logicOutputs)
 		{
-			output->ValidityEnd();
+			output->EndValidity();
 		}
 	}
 
@@ -169,8 +158,39 @@ const TArray<TWeakObjectPtr<ALogicOutputBlock>>& ULogicBlocksComponent::GetOutpu
 	return m_logicOutputs;
 }
 
-void ULogicBlocksComponent::_EditorTick(float _deltaTime)
+ULogicGraph* ULogicBlocksComponent::GetLogicGraph() const
 {
-
+	return m_logicGraph;
 }
 
+void ULogicBlocksComponent::DestroyLogicNode(ULogicNode* _node)
+{
+	check(_node->IsValidLowLevel());
+	check(m_allNodes.Find(_node) != INDEX_NONE);
+
+	m_allNodes.Remove(_node);
+
+	// TODO: Remove all references from other nodes.
+
+	_node->ConditionalBeginDestroy();
+}
+
+void ULogicBlocksComponent::_EditorTick(float _deltaTime)
+{
+	// GARBAGE COLLECTION
+	for (int32 i = m_logicInputs.Num() - 1; i >= 0; --i)
+	{
+		if (m_logicInputs[i].Get() == nullptr)
+		{
+			m_logicInputs.RemoveAt(i);
+		}
+	}
+
+	for (int32 i = m_logicOutputs.Num() - 1; i >= 0; --i)
+	{
+		if (m_logicOutputs[i].Get() == nullptr)
+		{
+			m_logicOutputs.RemoveAt(i);
+		}
+	}
+}

@@ -25,6 +25,12 @@ private:
 	FText _GetActorName(TWeakObjectPtr<AActor> _input) const;
 	void _OnActorNameCommited(const FText& _text, ETextCommit::Type _commitType, TWeakObjectPtr<AActor> _input);
 
+	void _DeleteSelectedNodes();
+	bool _CanDeleteNodes();
+
 	TWeakObjectPtr<ULogicBlocksComponent> m_selectedComponent;
+	TSharedPtr<SGraphEditor> m_logicGraphEditor;
 	IDetailLayoutBuilder* m_detailLayout = nullptr;
+
+	TSharedPtr<FUICommandList> m_graphEditorCommands;
 };

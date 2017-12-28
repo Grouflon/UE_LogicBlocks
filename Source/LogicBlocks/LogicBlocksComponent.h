@@ -4,37 +4,188 @@
 
 class ALogicInputBlock;
 class ALogicOutputBlock;
+class ULogicGraph;
+
+class ULogicNode;
+class ULogicExpressionNode;
+class ULogicOutputNode;
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include <Input/Reply.h>
+
+#include <LogicInputBlock.h>
+#include <LogicOutputBlock.h>
+#include <LogicGraph.h>
+
 #include "LogicBlocksComponent.generated.h"
 
-class LogicOperation
+UCLASS(abstract, hidecategories = Object)
+class ULogicNode : public UObject
 {
-public:
-	virtual bool Evaluate() const = 0;
-};
+	GENERATED_BODY()
 
-class LogicOperationInput : public LogicOperation
-{
 public:
-	virtual bool Evaluate() const
+	ULogicGraphNode* GetGraphNode() const { return m_graphNode; }
+
+	void SetupGraphNode(UEdGraph* _graph)
 	{
-		return false;
+		m_graphNode = _CreateGraphNode(_graph);
+		check(m_graphNode);
+		m_graphNode->SetLogicNode(this);
 	}
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) { return nullptr; }
+
+private:
+	UPROPERTY() ULogicGraphNode* m_graphNode = nullptr;
 };
 
-class LogicOperationAnd : public LogicOperation
+UCLASS(abstract, hidecategories = Object)
+class ULogicExpressionNode : public ULogicNode
 {
+	GENERATED_BODY()
+
+public:
+	virtual bool Evaluate() const { return true; };
+};
+
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
+class ULogicInputNode : public ULogicExpressionNode
+{
+	GENERATED_BODY()
+
 public:
 	virtual bool Evaluate() const override
 	{
-		return false;
+		return Input ? Input->Evaluate() : false;
+	}
+
+	ALogicInputBlock* Input = nullptr;
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
+	{
+		FGraphNodeCreator<ULogicInputGraphNode> nodeCreator(*_graph);
+		ULogicInputGraphNode* graphNode = nodeCreator.CreateNode();
+		nodeCreator.Finalize();
+		return graphNode;
+	}
+
+};
+
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
+class ULogicANDNode : public ULogicExpressionNode
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool Evaluate() const override
+	{
+		bool result = Operands.Num() > 0 ? true : false;
+		for (auto operand : Operands)
+		{
+			result = result && operand->Evaluate();
+
+			if (result == false)
+				break;
+		}
+		return result;
+	}
+
+	TArray<ULogicExpressionNode*> Operands;
+};
+
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
+class ULogicORNode : public ULogicExpressionNode
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool Evaluate() const override
+	{
+		bool result = false;
+		for (auto operand : Operands)
+		{
+			result = result || operand->Evaluate();
+
+			if (result == true)
+				break;
+		}
+		return result;
+	}
+
+	TArray<ULogicExpressionNode*> Operands;
+};
+
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
+class ULogicNOTNode : public ULogicExpressionNode
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool Evaluate() const override
+	{
+		return !Expression->Evaluate();
+	}
+
+	ULogicExpressionNode* Expression;
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
+	{
+		FGraphNodeCreator<ULogicNOTGraphNode> nodeCreator(*_graph);
+		ULogicNOTGraphNode* graphNode = nodeCreator.CreateNode();
+		nodeCreator.Finalize();
+		return graphNode;
+	}
+};
+
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
+class ULogicOutputNode : public ULogicNode
+{
+	GENERATED_BODY()
+
+public:
+
+	void Tick(float _dt)
+	{
+		check(Output);
+
+		bool evaluation = Input ? Input->Evaluate() : false;
+
+		if (!m_previousEvaluation && evaluation)
+		{
+			Output->BeginValidity();
+		}
+
+		if (evaluation)
+		{
+			Output->TickValidity(_dt);
+		}
+
+		if (!evaluation && m_previousEvaluation)
+		{
+			Output->EndValidity();
+		}
+
+		m_previousEvaluation = evaluation;
+	}
+
+	ULogicExpressionNode* Input;
+	ALogicOutputBlock* Output;
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
+	{
+		FGraphNodeCreator<ULogicOutputGraphNode> nodeCreator(*_graph);
+		ULogicOutputGraphNode* graphNode = nodeCreator.CreateNode();
+		nodeCreator.Finalize();
+		return graphNode;
 	}
 
 private:
-	TArray<LogicOperation*> m_operands;
+	bool m_previousEvaluation = false;
 };
 
 
@@ -48,12 +199,7 @@ public:
 	ULogicBlocksComponent();
 	virtual ~ULogicBlocksComponent();
 
-protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 
@@ -70,6 +216,19 @@ public:
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicInputBlock> LogicInputBlockClass;
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicOutputBlock> LogicOutputBlockClass;
 
+	ULogicGraph* GetLogicGraph() const;
+
+	template<class T>
+	T* ConstructLogicNode(TSubclassOf<ULogicNode> LogicNodeClass = T::StaticClass())
+	{
+		// Set flag to be transactional so it registers with undo system
+		T* LogicNode = NewObject<T>(this, LogicNodeClass, NAME_None, RF_Transactional);
+		m_allNodes.Add(LogicNode);
+		return LogicNode;
+	}
+
+	void DestroyLogicNode(ULogicNode* _node);
+
 private:
 	void _EditorTick(float _deltaTime);
 
@@ -77,4 +236,7 @@ private:
 	UPROPERTY() TArray<TWeakObjectPtr<ALogicOutputBlock>> m_logicOutputs;
 
 	bool m_previousValidity = false;
+
+	UPROPERTY() ULogicGraph* m_logicGraph = nullptr;
+	TArray<ULogicNode*> m_allNodes;
 };

@@ -1,8 +1,5 @@
 #include "LogicBlocksDetailsCustomization.h"
 
-#include <LogicBlocksComponent.h>
-#include <LogicInputBlock.h>
-#include <LogicOutputBlock.h>
 #include <Widgets/Layout/SBox.h>
 #include <Widgets/Layout/SSeparator.h>
 #include <Widgets/Text/STextBlock.h>
@@ -16,6 +13,15 @@
 #include <GameFramework/Actor.h>
 #include <PropertyCustomizationHelpers.h>
 #include <SSplitter.h>
+#include <GraphEditor.h>
+#include <GenericCommands.h>
+#include <ScopedTransaction.h>
+#include <BlueprintEditorUtils.h>
+
+#include <LogicBlocksComponent.h>
+#include <LogicInputBlock.h>
+#include <LogicOutputBlock.h>
+#include <LogicGraph.h>
 
 #define LOCTEXT_NAMESPACE "LogicBlocks"
 
@@ -224,6 +230,29 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 			}
 		}
 	}
+
+	{
+		if (!m_graphEditorCommands.IsValid())
+		{
+			m_graphEditorCommands = MakeShareable(new FUICommandList);
+
+			m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
+				FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
+				FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
+			);
+		}
+
+		m_logicGraphEditor = SNew(SGraphEditor)
+			.AdditionalCommands(m_graphEditorCommands)
+			.GraphToEdit(m_selectedComponent->GetLogicGraph());
+
+		IDetailCategoryBuilder& logicCategory = DetailLayout.EditCategory("Logic", FText::GetEmpty(), ECategoryPriority::Important);
+		FText t = FText::FromString(TEXT("Graph"));
+		logicCategory.AddCustomRow(t)
+		[
+			m_logicGraphEditor.ToSharedRef()
+		];
+	}
 }
 
 bool FLogicBlocksDetailsCustomization::_CanCreateInput() const
@@ -307,6 +336,40 @@ void FLogicBlocksDetailsCustomization::_OnActorNameCommited(const FText& _text, 
 		return;
 
 	_actor->SetActorLabel(_text.ToString());
+}
+
+void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
+{
+	const FScopedTransaction Transaction(LOCTEXT("LogicBlocksDeleteSelectedNode", "Delete Selected Logic Node"));
+
+	ULogicGraph* logicGraph = Cast<ULogicGraph>(m_logicGraphEditor->GetCurrentGraph());
+	check(logicGraph);
+
+	logicGraph->Modify();
+
+	FGraphPanelSelectionSet selectedNodes = m_logicGraphEditor->GetSelectedNodes();
+
+	m_logicGraphEditor->ClearSelectionSet();
+
+	for (FGraphPanelSelectionSet::TConstIterator nodeIt(selectedNodes); nodeIt; ++nodeIt)
+	{
+		ULogicGraphNode* graphNode = Cast<ULogicGraphNode>(*nodeIt);
+		check(graphNode);
+
+		if (graphNode->CanUserDeleteNode())
+		{
+			FBlueprintEditorUtils::RemoveNode(NULL, graphNode, true);
+
+			ULogicNode* toDeleteNode = graphNode->GetLogicNode();
+			logicGraph->GetLogicBlocksComponent()->DestroyLogicNode(toDeleteNode);
+		}
+	}
+}
+
+bool FLogicBlocksDetailsCustomization::_CanDeleteNodes()
+{
+	
+	return m_logicGraphEditor->GetSelectedNodes().Num() > 0;
 }
 
 #undef LOCTEXT_NAMESPACE
