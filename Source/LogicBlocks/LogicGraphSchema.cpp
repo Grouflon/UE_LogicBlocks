@@ -146,13 +146,13 @@ const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGra
 	/*if (ConnectionCausesLoop(InputPin, OutputPin))
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("ConnectionLoop", "Connection would cause loop"));
-	}
+	}*/
 
 	// Break existing connections on inputs only - multiple output connections are acceptable
 	if (InputPin->LinkedTo.Num() > 0)
 	{
 		ECanCreateConnectionResponse ReplyBreakOutputs;
-		if (InputPin == PinA)
+		if (InputPin == A)
 		{
 			ReplyBreakOutputs = CONNECT_RESPONSE_BREAK_OTHERS_A;
 		}
@@ -161,7 +161,7 @@ const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGra
 			ReplyBreakOutputs = CONNECT_RESPONSE_BREAK_OTHERS_B;
 		}
 		return FPinConnectionResponse(ReplyBreakOutputs, LOCTEXT("ConnectionReplace", "Replace existing connections"));
-	}*/
+	}
 
 	return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
 }
