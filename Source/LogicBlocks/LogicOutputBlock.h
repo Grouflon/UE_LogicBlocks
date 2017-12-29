@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "LogicOutputBlock.generated.h"
 
-UCLASS()
+UCLASS(abstract)
 class LOGICBLOCKS_API ALogicOutputBlock : public AActor
 {
 	GENERATED_BODY()
