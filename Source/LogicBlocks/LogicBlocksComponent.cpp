@@ -128,11 +128,27 @@ void ULogicBlocksComponent::RemoveInput(ALogicInputBlock* _input)
 {
 	check(m_logicInputs.Find(_input) != INDEX_NONE);
 
+	// REMOVE PREREQUISITES
 	PrimaryComponentTick.RemovePrerequisite(_input, _input->PrimaryActorTick);
 
+	// DESTROY MATCHING NODES
+	for (int32 i = m_logicNodes.Num() - 1; i >= 0; --i)
+	{
+		ULogicInputNode* inputNode = Cast<ULogicInputNode>(m_logicNodes[i]);
+		if (!inputNode)
+			continue;
+
+		if (inputNode->Input == _input)
+		{
+			DestroyLogicNode(inputNode);
+		}
+	}
+
+	// REMOVE FROM INPUT LIST
 	int32 ret = m_logicInputs.Remove(_input);
 	check(ret == 1);
 
+	// DESTROY
 	_input->Destroy();
 }
 
@@ -140,11 +156,27 @@ void ULogicBlocksComponent::RemoveOutput(ALogicOutputBlock* _output)
 {
 	check(m_logicOutputs.Find(_output) != INDEX_NONE);
 
+	// REMOVE PREREQUISITES
 	_output->PrimaryActorTick.RemovePrerequisite(this, PrimaryComponentTick);
 
+	// DESTROY MATCHING NODES
+	for (int32 i = m_logicNodes.Num() - 1; i >= 0; --i)
+	{
+		ULogicOutputNode* outputNode = Cast<ULogicOutputNode>(m_logicNodes[i]);
+		if (!outputNode)
+			continue;
+
+		if (outputNode->Output == _output)
+		{
+			DestroyLogicNode(outputNode);
+		}
+	}
+
+	// REMOVE FROM INPUT LIST
 	int32 ret = m_logicOutputs.Remove(_output);
 	check(ret == 1);
 
+	// DESTROY
 	_output->Destroy();
 }
 
@@ -166,9 +198,9 @@ ULogicGraph* ULogicBlocksComponent::GetLogicGraph() const
 void ULogicBlocksComponent::DestroyLogicNode(ULogicNode* _node)
 {
 	check(_node->IsValidLowLevel());
-	check(m_allNodes.Find(_node) != INDEX_NONE);
+	check(m_logicNodes.Find(_node) != INDEX_NONE);
 
-	m_allNodes.Remove(_node);
+	m_logicNodes.Remove(_node);
 
 	// TODO: Remove all references from other nodes.
 

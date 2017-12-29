@@ -358,8 +358,6 @@ void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 
 		if (graphNode->CanUserDeleteNode())
 		{
-			FBlueprintEditorUtils::RemoveNode(NULL, graphNode, true);
-
 			ULogicNode* toDeleteNode = graphNode->GetLogicNode();
 			logicGraph->GetLogicBlocksComponent()->DestroyLogicNode(toDeleteNode);
 		}

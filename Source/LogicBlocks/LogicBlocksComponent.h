@@ -10,8 +10,9 @@ class ULogicNode;
 class ULogicExpressionNode;
 class ULogicOutputNode;
 
-#include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include <CoreMinimal.h>
+#include <Components/ActorComponent.h>
+#include <BlueprintEditorUtils.h>
 
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
@@ -32,6 +33,17 @@ public:
 		m_graphNode = _CreateGraphNode(_graph);
 		check(m_graphNode);
 		m_graphNode->SetLogicNode(this);
+	}
+
+	virtual void BeginDestroy() override
+	{
+		if (m_graphNode)
+		{
+			FBlueprintEditorUtils::RemoveNode(NULL, m_graphNode, true);
+			m_graphNode = nullptr;
+		}
+
+		Super::BeginDestroy();
 	}
 
 protected:
@@ -223,7 +235,7 @@ public:
 	{
 		// Set flag to be transactional so it registers with undo system
 		T* LogicNode = NewObject<T>(this, LogicNodeClass, NAME_None, RF_Transactional);
-		m_allNodes.Add(LogicNode);
+		m_logicNodes.Add(LogicNode);
 		return LogicNode;
 	}
 
@@ -238,5 +250,6 @@ private:
 	bool m_previousValidity = false;
 
 	UPROPERTY() ULogicGraph* m_logicGraph = nullptr;
-	TArray<ULogicNode*> m_allNodes;
+
+	TArray<ULogicNode*> m_logicNodes;
 };
