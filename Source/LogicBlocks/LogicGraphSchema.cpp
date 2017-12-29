@@ -4,6 +4,8 @@
 
 #include <UObject/UObjectIterator.h>
 #include <ScopedTransaction.h>
+#include <MultiBoxBuilder.h>
+#include <GraphEditorActions.h>
 
 #include <LogicGraph.h>
 #include <LogicBlocksComponent.h>
@@ -124,6 +126,32 @@ void ULogicGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Context
 		NewNodeAction->Output = output.Get();
 		ContextMenuBuilder.AddAction(NewNodeAction);
 	}
+}
+
+void ULogicGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
+{
+	if (InGraphPin)
+	{
+		MenuBuilder->BeginSection("SoundCueGraphSchemaPinActions", LOCTEXT("PinActionsMenuHeader", "Pin Actions"));
+		{
+			// Only display the 'Break Link' option if there is a link to break!
+			if (InGraphPin->LinkedTo.Num() > 0)
+			{
+				MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakPinLinks);
+			}
+		}
+		MenuBuilder->EndSection();
+	}
+	else if (InGraphNode)
+	{
+		MenuBuilder->BeginSection("SoundCueGraphSchemaNodeActions", LOCTEXT("NodeActionsMenuHeader", "Node Actions"));
+		{
+			MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakNodeLinks);
+		}
+		MenuBuilder->EndSection();
+	}
+
+	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
 }
 
 const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const
