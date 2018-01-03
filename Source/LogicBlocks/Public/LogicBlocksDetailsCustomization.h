@@ -3,6 +3,7 @@
 class ULogicBlocksComponent;
 class ALogicInputBlock;
 class ALogicOutputBlock;
+class SGraphEditor;
 
 #include <IDetailCustomization.h>
 
