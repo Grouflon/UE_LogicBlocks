@@ -3,6 +3,7 @@
 #include "LogicBlocksComponent.h"
 
 #include <Engine/World.h>
+#include <BlueprintEditorUtils.h>
 
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
@@ -50,39 +51,50 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	{
 #endif
 
-	bool validity = true;
-	for (auto input : m_logicInputs)
+	if (!IsAdvancedModeEnabled)
 	{
-		validity = validity && input->Evaluate();
-		if (!validity)
-			break;
-	}
-
-	if (validity && !m_previousValidity)
-	{
-		for (auto output : m_logicOutputs)
+		bool validity = true;
+		for (auto input : m_logicInputs)
 		{
-			output->BeginValidity();
+			validity = validity && input->Evaluate();
+			if (!validity)
+				break;
+		}
+
+		if (validity && !m_previousValidity)
+		{
+			for (auto output : m_logicOutputs)
+			{
+				output->BeginValidity();
+			}
+		}
+
+		if (validity)
+		{
+			for (auto output : m_logicOutputs)
+			{
+				output->TickValidity(DeltaTime);
+			}
+		}
+
+		if (!validity && m_previousValidity)
+		{
+			for (auto output : m_logicOutputs)
+			{
+				output->EndValidity();
+			}
+		}
+
+		m_previousValidity = validity;
+	}
+	else
+	{
+		for (ULogicOutputNode* outputNode : m_logicOutputNodes)
+		{
+			outputNode->Tick(DeltaTime);
 		}
 	}
-
-	if (validity)
-	{
-		for (auto output : m_logicOutputs)
-		{
-			output->TickValidity(DeltaTime);
-		}
-	}
-
-	if (!validity && m_previousValidity)
-	{
-		for (auto output : m_logicOutputs)
-		{
-			output->EndValidity();
-		}
-	}
-
-	m_previousValidity = validity;
+	
 
 #if WITH_EDITOR
 	}
@@ -91,8 +103,24 @@ void ULogicBlocksComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 
 void ULogicBlocksComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	m_logicInputs.Empty();
-	m_logicOutputs.Empty();
+	/*for (int32 i = m_logicNodes.Num() - 1; i >= 0; --i)
+	{
+		DestroyLogicNode(m_logicNodes[i]);
+	}
+	check(m_logicNodes.Num() == 0);
+	check(m_logicOutputNodes.Num() == 0);
+
+	for (int32 i = m_logicInputs.Num() - 1; i >= 0; --i)
+	{
+		RemoveInput(m_logicInputs[i].Get());
+	}
+	check(m_logicInputs.Num() == 0);
+
+	for (int32 i = m_logicOutputs.Num() - 1; i >= 0; --i)
+	{
+		RemoveOutput(m_logicOutputs[i].Get());
+	}
+	check(m_logicOutputs.Num() == 0);*/
 }
 
 
@@ -202,6 +230,12 @@ void ULogicBlocksComponent::DestroyLogicNode(ULogicNode* _node)
 
 	m_logicNodes.Remove(_node);
 
+	ULogicOutputNode* logicOutputNode = Cast<ULogicOutputNode>(_node);
+	if (logicOutputNode)
+	{
+		m_logicOutputNodes.Remove(logicOutputNode);
+	}
+
 	// TODO: Remove all references from other nodes.
 
 	_node->ConditionalBeginDestroy();
@@ -225,4 +259,108 @@ void ULogicBlocksComponent::_EditorTick(float _deltaTime)
 			m_logicOutputs.RemoveAt(i);
 		}
 	}
+}
+
+ULogicGraphNode* ULogicNode::GetGraphNode() const
+{
+	return m_graphNode;
+}
+
+void ULogicNode::SetupGraphNode(UEdGraph* _graph)
+{
+	check(!m_graphNode);
+
+	m_graphNode = _CreateGraphNode(_graph);
+	check(m_graphNode);
+	m_graphNode->SetLogicNode(this);
+}
+
+void ULogicNode::BeginDestroy()
+{
+	if (m_graphNode)
+	{
+		FBlueprintEditorUtils::RemoveNode(NULL, m_graphNode, true);
+		m_graphNode = nullptr;
+	}
+
+	Super::BeginDestroy();
+}
+
+bool ULogicInputNode::Evaluate() const
+{
+	return Input ? Input->Evaluate() : false;
+}
+
+ULogicGraphNode* ULogicInputNode::_CreateGraphNode(UEdGraph* _graph)
+{
+	FGraphNodeCreator<ULogicInputGraphNode> nodeCreator(*_graph);
+	ULogicInputGraphNode* graphNode = nodeCreator.CreateNode();
+	nodeCreator.Finalize();
+	return graphNode;
+}
+
+bool ULogicANDNode::Evaluate() const
+{
+	bool result = Operands.Num() > 0 ? true : false;
+	for (auto operand : Operands)
+	{
+		result = result && operand->Evaluate();
+
+		if (result == false)
+			break;
+	}
+	return result;
+}
+
+bool ULogicORNode::Evaluate() const
+{
+	bool result = false;
+	for (auto operand : Operands)
+	{
+		result = result || operand->Evaluate();
+
+		if (result == true)
+			break;
+	}
+	return result;
+}
+
+void ULogicOutputNode::Tick(float _dt)
+{
+	check(Output);
+
+	bool evaluation = Input ? Input->Evaluate() : false;
+
+	if (!m_previousEvaluation && evaluation)
+	{
+		Output->BeginValidity();
+	}
+
+	if (evaluation)
+	{
+		Output->TickValidity(_dt);
+	}
+
+	if (!evaluation && m_previousEvaluation)
+	{
+		Output->EndValidity();
+	}
+
+	m_previousEvaluation = evaluation;
+}
+
+ULogicGraphNode* ULogicOutputNode::_CreateGraphNode(UEdGraph* _graph)
+{
+	FGraphNodeCreator<ULogicOutputGraphNode> nodeCreator(*_graph);
+	ULogicOutputGraphNode* graphNode = nodeCreator.CreateNode();
+	nodeCreator.Finalize();
+	return graphNode;
+}
+
+ULogicGraphNode* ULogicNOTNode::_CreateGraphNode(UEdGraph* _graph)
+{
+	FGraphNodeCreator<ULogicNOTGraphNode> nodeCreator(*_graph);
+	ULogicNOTGraphNode* graphNode = nodeCreator.CreateNode();
+	nodeCreator.Finalize();
+	return graphNode;
 }

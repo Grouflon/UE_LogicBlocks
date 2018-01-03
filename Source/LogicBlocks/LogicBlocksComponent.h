@@ -5,20 +5,16 @@
 class ALogicInputBlock;
 class ALogicOutputBlock;
 class ULogicGraph;
-
+class ULogicGraphNode;
 class ULogicNode;
 class ULogicExpressionNode;
 class ULogicOutputNode;
 
 #include <CoreMinimal.h>
 #include <Components/ActorComponent.h>
-#include <BlueprintEditorUtils.h>
-
-#include <LogicInputBlock.h>
-#include <LogicOutputBlock.h>
-#include <LogicGraph.h>
 
 #include "LogicBlocksComponent.generated.h"
+
 
 UCLASS(abstract, hidecategories = Object)
 class ULogicNode : public UObject
@@ -26,25 +22,10 @@ class ULogicNode : public UObject
 	GENERATED_BODY()
 
 public:
-	ULogicGraphNode* GetGraphNode() const { return m_graphNode; }
+	ULogicGraphNode* GetGraphNode() const;
+	void SetupGraphNode(UEdGraph* _graph);
 
-	void SetupGraphNode(UEdGraph* _graph)
-	{
-		m_graphNode = _CreateGraphNode(_graph);
-		check(m_graphNode);
-		m_graphNode->SetLogicNode(this);
-	}
-
-	virtual void BeginDestroy() override
-	{
-		if (m_graphNode)
-		{
-			FBlueprintEditorUtils::RemoveNode(NULL, m_graphNode, true);
-			m_graphNode = nullptr;
-		}
-
-		Super::BeginDestroy();
-	}
+	virtual void BeginDestroy() override;
 
 protected:
 	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) { return nullptr; }
@@ -52,6 +33,7 @@ protected:
 private:
 	UPROPERTY() ULogicGraphNode* m_graphNode = nullptr;
 };
+
 
 UCLASS(abstract, hidecategories = Object)
 class ULogicExpressionNode : public ULogicNode
@@ -62,29 +44,22 @@ public:
 	virtual bool Evaluate() const { return true; };
 };
 
+
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
 class ULogicInputNode : public ULogicExpressionNode
 {
 	GENERATED_BODY()
 
 public:
-	virtual bool Evaluate() const override
-	{
-		return Input ? Input->Evaluate() : false;
-	}
+	virtual bool Evaluate() const override;
 
-	ALogicInputBlock* Input = nullptr;
+	UPROPERTY() ALogicInputBlock* Input = nullptr;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
-	{
-		FGraphNodeCreator<ULogicInputGraphNode> nodeCreator(*_graph);
-		ULogicInputGraphNode* graphNode = nodeCreator.CreateNode();
-		nodeCreator.Finalize();
-		return graphNode;
-	}
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 
 };
+
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
 class ULogicANDNode : public ULogicExpressionNode
@@ -92,21 +67,11 @@ class ULogicANDNode : public ULogicExpressionNode
 	GENERATED_BODY()
 
 public:
-	virtual bool Evaluate() const override
-	{
-		bool result = Operands.Num() > 0 ? true : false;
-		for (auto operand : Operands)
-		{
-			result = result && operand->Evaluate();
+	virtual bool Evaluate() const override;
 
-			if (result == false)
-				break;
-		}
-		return result;
-	}
-
-	TArray<ULogicExpressionNode*> Operands;
+	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
 };
+
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
 class ULogicORNode : public ULogicExpressionNode
@@ -114,21 +79,11 @@ class ULogicORNode : public ULogicExpressionNode
 	GENERATED_BODY()
 
 public:
-	virtual bool Evaluate() const override
-	{
-		bool result = false;
-		for (auto operand : Operands)
-		{
-			result = result || operand->Evaluate();
+	virtual bool Evaluate() const override;
 
-			if (result == true)
-				break;
-		}
-		return result;
-	}
-
-	TArray<ULogicExpressionNode*> Operands;
+	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
 };
+
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
 class ULogicNOTNode : public ULogicExpressionNode
@@ -141,17 +96,12 @@ public:
 		return !Expression->Evaluate();
 	}
 
-	ULogicExpressionNode* Expression;
+	UPROPERTY() ULogicExpressionNode* Expression;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
-	{
-		FGraphNodeCreator<ULogicNOTGraphNode> nodeCreator(*_graph);
-		ULogicNOTGraphNode* graphNode = nodeCreator.CreateNode();
-		nodeCreator.Finalize();
-		return graphNode;
-	}
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
+
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI)
 class ULogicOutputNode : public ULogicNode
@@ -159,42 +109,13 @@ class ULogicOutputNode : public ULogicNode
 	GENERATED_BODY()
 
 public:
+	void Tick(float _dt);
 
-	void Tick(float _dt)
-	{
-		check(Output);
-
-		bool evaluation = Input ? Input->Evaluate() : false;
-
-		if (!m_previousEvaluation && evaluation)
-		{
-			Output->BeginValidity();
-		}
-
-		if (evaluation)
-		{
-			Output->TickValidity(_dt);
-		}
-
-		if (!evaluation && m_previousEvaluation)
-		{
-			Output->EndValidity();
-		}
-
-		m_previousEvaluation = evaluation;
-	}
-
-	ULogicExpressionNode* Input;
-	ALogicOutputBlock* Output;
+	UPROPERTY() ULogicExpressionNode* Input;
+	UPROPERTY() ALogicOutputBlock* Output;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override
-	{
-		FGraphNodeCreator<ULogicOutputGraphNode> nodeCreator(*_graph);
-		ULogicOutputGraphNode* graphNode = nodeCreator.CreateNode();
-		nodeCreator.Finalize();
-		return graphNode;
-	}
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 
 private:
 	bool m_previousEvaluation = false;
@@ -228,15 +149,25 @@ public:
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicInputBlock> LogicInputBlockClass;
 	UPROPERTY(EditAnywhere) TSubclassOf<ALogicOutputBlock> LogicOutputBlockClass;
 
+	// When not in Advanced Mode, All Inputs will be combined with an AND operation, and the result of this will trigger all Outputs
+	UPROPERTY(EditAnywhere, DisplayName = "Advanced Mode") bool IsAdvancedModeEnabled = false;
+
 	ULogicGraph* GetLogicGraph() const;
 
 	template<class T>
-	T* ConstructLogicNode(TSubclassOf<ULogicNode> LogicNodeClass = T::StaticClass())
+	T* ConstructLogicNode(TSubclassOf<ULogicNode> _logicNodeClass = T::StaticClass())
 	{
 		// Set flag to be transactional so it registers with undo system
-		T* LogicNode = NewObject<T>(this, LogicNodeClass, NAME_None, RF_Transactional);
-		m_logicNodes.Add(LogicNode);
-		return LogicNode;
+		T* logicNode = NewObject<T>(this, _logicNodeClass, NAME_None, RF_Transactional);
+		m_logicNodes.Add(logicNode);
+
+		ULogicOutputNode* logicOutputNode = Cast<ULogicOutputNode>(logicNode);
+		if (logicOutputNode)
+		{
+			m_logicOutputNodes.Add(logicOutputNode);
+		}
+
+		return logicNode;
 	}
 
 	void DestroyLogicNode(ULogicNode* _node);
@@ -251,5 +182,6 @@ private:
 
 	UPROPERTY() ULogicGraph* m_logicGraph = nullptr;
 
-	TArray<ULogicNode*> m_logicNodes;
+	UPROPERTY() TArray<ULogicNode*> m_logicNodes;
+	UPROPERTY() TArray<ULogicOutputNode*> m_logicOutputNodes;
 };

@@ -9,6 +9,8 @@
 
 #include <LogicGraph.h>
 #include <LogicBlocksComponent.h>
+#include <LogicInputBlock.h>
+#include <LogicOutputBlock.h>
 
 #define LOCTEXT_NAMESPACE "LogicBlocks"
 

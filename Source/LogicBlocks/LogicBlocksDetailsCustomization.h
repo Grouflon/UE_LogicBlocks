@@ -28,8 +28,10 @@ private:
 	void _DeleteSelectedNodes();
 	bool _CanDeleteNodes();
 
+	void _MakeDirty();
+
 	TWeakObjectPtr<ULogicBlocksComponent> m_selectedComponent;
-	TSharedPtr<SGraphEditor> m_logicGraphEditor;
+	TWeakPtr<SGraphEditor> m_logicGraphEditor;
 	IDetailLayoutBuilder* m_detailLayout = nullptr;
 
 	TSharedPtr<FUICommandList> m_graphEditorCommands;

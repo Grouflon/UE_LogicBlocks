@@ -5,6 +5,8 @@
 #include <EdGraphSchema_K2.h>
 
 #include <LogicBlocksComponent.h>
+#include <LogicInputBlock.h>
+#include <LogicOutputBlock.h>
 
 void ULogicGraphNode::SetLogicNode(ULogicNode* _node)
 {

@@ -232,26 +232,35 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 	}
 
 	{
-		if (!m_graphEditorCommands.IsValid())
+		IDetailCategoryBuilder& logicCategory = DetailLayout.EditCategory("Logic", FText::GetEmpty(), ECategoryPriority::Important);
+
+		IDetailPropertyRow& propertyRow = logicCategory.AddProperty(TEXT("IsAdvancedModeEnabled"));
+		propertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+
+		if (m_selectedComponent->IsAdvancedModeEnabled)
 		{
+			/*if (!m_graphEditorCommands.IsValid())
+			{
 			m_graphEditorCommands = MakeShareable(new FUICommandList);
 
 			m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
-				FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
-				FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
+			FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
+			FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
 			);
+			}*/
+
+			TSharedPtr<SGraphEditor> graphEditor = SNew(SGraphEditor)
+				//.AdditionalCommands(m_graphEditorCommands)
+				.GraphToEdit(m_selectedComponent->GetLogicGraph());
+
+			m_logicGraphEditor = TWeakPtr<SGraphEditor>(graphEditor);
+
+			FText t = FText::FromString(TEXT("Graph"));
+			logicCategory.AddCustomRow(t)
+			[
+				graphEditor.ToSharedRef()
+			];
 		}
-
-		m_logicGraphEditor = SNew(SGraphEditor)
-			.AdditionalCommands(m_graphEditorCommands)
-			.GraphToEdit(m_selectedComponent->GetLogicGraph());
-
-		IDetailCategoryBuilder& logicCategory = DetailLayout.EditCategory("Logic", FText::GetEmpty(), ECategoryPriority::Important);
-		FText t = FText::FromString(TEXT("Graph"));
-		logicCategory.AddCustomRow(t)
-		[
-			m_logicGraphEditor.ToSharedRef()
-		];
 	}
 }
 
@@ -340,16 +349,18 @@ void FLogicBlocksDetailsCustomization::_OnActorNameCommited(const FText& _text, 
 
 void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 {
+	check(m_logicGraphEditor.IsValid());
+
 	const FScopedTransaction Transaction(LOCTEXT("LogicBlocksDeleteSelectedNode", "Delete Selected Logic Node"));
 
-	ULogicGraph* logicGraph = Cast<ULogicGraph>(m_logicGraphEditor->GetCurrentGraph());
+	ULogicGraph* logicGraph = Cast<ULogicGraph>(m_logicGraphEditor.Pin()->GetCurrentGraph());
 	check(logicGraph);
 
 	logicGraph->Modify();
 
-	FGraphPanelSelectionSet selectedNodes = m_logicGraphEditor->GetSelectedNodes();
+	FGraphPanelSelectionSet selectedNodes = m_logicGraphEditor.Pin()->GetSelectedNodes();
 
-	m_logicGraphEditor->ClearSelectionSet();
+	m_logicGraphEditor.Pin()->ClearSelectionSet();
 
 	for (FGraphPanelSelectionSet::TConstIterator nodeIt(selectedNodes); nodeIt; ++nodeIt)
 	{
@@ -366,8 +377,14 @@ void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 
 bool FLogicBlocksDetailsCustomization::_CanDeleteNodes()
 {
-	
-	return m_logicGraphEditor->GetSelectedNodes().Num() > 0;
+	check(m_logicGraphEditor.IsValid());
+
+	return m_logicGraphEditor.Pin()->GetSelectedNodes().Num() > 0;
+}
+
+void FLogicBlocksDetailsCustomization::_MakeDirty()
+{
+	m_detailLayout->ForceRefreshDetails();
 }
 
 #undef LOCTEXT_NAMESPACE

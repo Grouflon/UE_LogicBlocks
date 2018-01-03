@@ -23,7 +23,7 @@ public:
 	ULogicNode* GetLogicNode() const;
 
 private:
-	ULogicNode* m_logicNode = nullptr;
+	UPROPERTY() ULogicNode* m_logicNode = nullptr;
 };
 
 UCLASS(MinimalAPI)
