@@ -301,28 +301,54 @@ ULogicGraphNode* ULogicInputNode::_CreateGraphNode(UEdGraph* _graph)
 
 bool ULogicANDNode::Evaluate() const
 {
-	bool result = Operands.Num() > 0 ? true : false;
+	bool result = true;
+	bool hasOperands = false;
 	for (auto operand : Operands)
 	{
+		if (operand == nullptr)
+			continue;
+
+		hasOperands = true;
 		result = result && operand->Evaluate();
 
 		if (result == false)
 			break;
 	}
-	return result;
+	return hasOperands ? result : true;
+}
+
+ULogicGraphNode* ULogicANDNode::_CreateGraphNode(UEdGraph* _graph)
+{
+	FGraphNodeCreator<ULogicANDGraphNode> nodeCreator(*_graph);
+	ULogicANDGraphNode* graphNode = nodeCreator.CreateNode();
+	nodeCreator.Finalize();
+	return graphNode;
 }
 
 bool ULogicORNode::Evaluate() const
 {
 	bool result = false;
+	bool hasOperands = false;
 	for (auto operand : Operands)
 	{
+		if (operand == nullptr)
+			continue;
+
+		hasOperands = true;
 		result = result || operand->Evaluate();
 
 		if (result == true)
 			break;
 	}
-	return result;
+	return hasOperands ? result : true;
+}
+
+ULogicGraphNode* ULogicORNode::_CreateGraphNode(UEdGraph* _graph)
+{
+	FGraphNodeCreator<ULogicORGraphNode> nodeCreator(*_graph);
+	ULogicORGraphNode* graphNode = nodeCreator.CreateNode();
+	nodeCreator.Finalize();
+	return graphNode;
 }
 
 void ULogicOutputNode::Tick(float _dt)

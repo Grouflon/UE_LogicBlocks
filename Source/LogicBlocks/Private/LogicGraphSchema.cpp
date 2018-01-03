@@ -277,10 +277,7 @@ void ULogicGraphSchema::_GetAllNodeActions(FGraphActionMenuBuilder& ActionMenuBu
 		if (nodeClass == ULogicOutputNode::StaticClass())
 			continue;
 
-		if (nodeClass != ULogicNOTNode::StaticClass()) // DEBUG
-			continue;
-
-		ULogicNode* LogicNode = nodeClass->GetDefaultObject<ULogicNode>();
+		//ULogicNode* LogicNode = nodeClass->GetDefaultObject<ULogicNode>();
 
 		// when dragging from an output pin you can create anything but a wave player
 		//if (!ActionMenuBuilder.FromPin || ActionMenuBuilder.FromPin->Direction == EGPD_Input || SoundNode->GetMaxChildNodes() > 0)

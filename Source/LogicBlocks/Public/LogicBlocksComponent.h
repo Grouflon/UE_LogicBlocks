@@ -70,6 +70,9 @@ public:
 	virtual bool Evaluate() const override;
 
 	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
 
 
@@ -82,6 +85,9 @@ public:
 	virtual bool Evaluate() const override;
 
 	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
+
+protected:
+	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
 
 

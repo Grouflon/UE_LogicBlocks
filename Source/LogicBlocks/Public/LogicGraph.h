@@ -69,6 +69,40 @@ public:
 	// End of UEdGraphNode interface.
 };
 
+UCLASS(MinimalAPI)
+class ULogicANDGraphNode : public ULogicGraphNode
+{
+	GENERATED_BODY()
+
+public:
+	// UEdGraphNode interface.
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
+	// End of UEdGraphNode interface.
+
+private:
+	UEdGraphPin* m_firstOperand = nullptr;
+	UEdGraphPin* m_secondOperand = nullptr;
+};
+
+UCLASS(MinimalAPI)
+class ULogicORGraphNode : public ULogicGraphNode
+{
+	GENERATED_BODY()
+
+public:
+	// UEdGraphNode interface.
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
+	// End of UEdGraphNode interface.
+
+private:
+	UEdGraphPin* m_firstOperand = nullptr;
+	UEdGraphPin* m_secondOperand = nullptr;
+};
+
 /**
  * 
  */

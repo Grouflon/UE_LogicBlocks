@@ -5,6 +5,7 @@
 #include <Widgets/Text/STextBlock.h>
 #include <Widgets/Input/SButton.h>
 #include <Widgets/Input/SEditableTextBox.h>
+#include <Widgets/SBoxPanel.h>
 #include <DetailLayoutBuilder.h>
 #include <DetailCategoryBuilder.h>
 #include <DetailWidgetRow.h>
@@ -231,6 +232,7 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 		}
 	}
 
+	// LOGIC
 	{
 		IDetailCategoryBuilder& logicCategory = DetailLayout.EditCategory("Logic", FText::GetEmpty(), ECategoryPriority::Important);
 
@@ -239,26 +241,33 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 		if (m_selectedComponent->IsAdvancedModeEnabled)
 		{
-			/*if (!m_graphEditorCommands.IsValid())
+			if (!m_graphEditorCommands.IsValid())
 			{
-			m_graphEditorCommands = MakeShareable(new FUICommandList);
+				m_graphEditorCommands = MakeShareable(new FUICommandList);
 
-			m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
-			FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
-			FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
-			);
-			}*/
+				m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
+					FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
+					FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
+				);
+			}
 
 			TSharedPtr<SGraphEditor> graphEditor = SNew(SGraphEditor)
-				//.AdditionalCommands(m_graphEditorCommands)
-				.GraphToEdit(m_selectedComponent->GetLogicGraph());
+				.AdditionalCommands(m_graphEditorCommands)
+				.GraphToEdit(m_selectedComponent->GetLogicGraph())
+				.IsEditable(true)
+				.AutoExpandActionMenu(true);
 
 			m_logicGraphEditor = TWeakPtr<SGraphEditor>(graphEditor);
 
 			FText t = FText::FromString(TEXT("Graph"));
 			logicCategory.AddCustomRow(t)
 			[
-				graphEditor.ToSharedRef()
+				SNew(SBox)
+				.VAlign(VAlign_Fill)
+				.HeightOverride(300.f)
+				[
+					graphEditor.ToSharedRef()
+				]
 			];
 		}
 	}
