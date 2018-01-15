@@ -123,9 +123,10 @@ void ULogicOutputGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 
 void ULogicANDGraphNode::AllocateDefaultPins()
 {
-	m_firstOperand = CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());
-	m_secondOperand = CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());
-	CreatePin(EGPD_Output, ULogicGraph::s_ExpressionPinType, FString());
+	CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());; // Pin 0
+	CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());; // Pin 1
+
+	CreatePin(EGPD_Output, ULogicGraph::s_ExpressionPinType, FString());; // Pin 2
 }
 
 FText ULogicANDGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -146,7 +147,7 @@ void ULogicANDGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 		logicAND->Operands.AddZeroed();
 	}
 
-	if (_pin == m_firstOperand)
+	if (_pin == GetAllPins()[0])
 	{
 		logicAND->Operands[0] = nullptr;
 
@@ -164,7 +165,7 @@ void ULogicANDGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 		}
 	}
 
-	if (_pin == m_secondOperand)
+	if (_pin == GetAllPins()[1])
 	{
 		logicAND->Operands[1] = nullptr;
 
@@ -185,9 +186,10 @@ void ULogicANDGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 
 void ULogicORGraphNode::AllocateDefaultPins()
 {
-	m_firstOperand = CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());
-	m_secondOperand = CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());
-	CreatePin(EGPD_Output, ULogicGraph::s_ExpressionPinType, FString());
+	CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString()); // Pin 0
+	CreatePin(EGPD_Input, ULogicGraph::s_ExpressionPinType, FString());; // Pin 1
+
+	CreatePin(EGPD_Output, ULogicGraph::s_ExpressionPinType, FString());; // Pin 2
 }
 
 FText ULogicORGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -208,7 +210,7 @@ void ULogicORGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 		logicOR->Operands.AddZeroed();
 	}
 
-	if (_pin == m_firstOperand)
+	if (_pin == GetAllPins()[0])
 	{
 		logicOR->Operands[0] = nullptr;
 
@@ -226,7 +228,7 @@ void ULogicORGraphNode::PinConnectionListChanged(UEdGraphPin* _pin)
 		}
 	}
 
-	if (_pin == m_secondOperand)
+	if (_pin == GetAllPins()[1])
 	{
 		logicOR->Operands[1] = nullptr;
 

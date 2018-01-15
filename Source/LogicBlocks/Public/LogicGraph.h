@@ -80,10 +80,6 @@ public:
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
 	// End of UEdGraphNode interface.
-
-private:
-	UEdGraphPin* m_firstOperand = nullptr;
-	UEdGraphPin* m_secondOperand = nullptr;
 };
 
 UCLASS(MinimalAPI)
@@ -97,10 +93,6 @@ public:
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
 	// End of UEdGraphNode interface.
-
-private:
-	UEdGraphPin* m_firstOperand = nullptr;
-	UEdGraphPin* m_secondOperand = nullptr;
 };
 
 /**

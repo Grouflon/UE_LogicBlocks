@@ -19,6 +19,7 @@
 #include <ScopedTransaction.h>
 #include <BlueprintEditorUtils.h>
 #include <Editor.h>
+#include <Engine/Selection.h>
 
 #include <LogicBlocksComponent.h>
 #include <LogicInputBlock.h>
@@ -283,10 +284,13 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 FLogicBlocksDetailsCustomization::FLogicBlocksDetailsCustomization()
 {
 	GEditor->OnBlueprintCompiled().AddRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty);
+
+	USelection::SelectionChangedEvent.AddRaw(this, &FLogicBlocksDetailsCustomization::_OnSelectionChanged);
 }
 
 FLogicBlocksDetailsCustomization::~FLogicBlocksDetailsCustomization()
 {
+	USelection::SelectionChangedEvent.RemoveAll(this);
 	GEditor->OnBlueprintCompiled().RemoveAll(this);
 }
 
@@ -414,6 +418,35 @@ void FLogicBlocksDetailsCustomization::_MakeDirty()
 		return;
 
 	m_detailLayout->ForceRefreshDetails();
+}
+
+void FLogicBlocksDetailsCustomization::_OnSelectionChanged(UObject* _object)
+{
+	if (!m_selectedComponent.Get())
+		return;
+
+	USelection* selection = Cast<USelection>(_object); // WTF unreal ? why not typing the delegate ??
+	check(selection);
+
+	TArray<TWeakObjectPtr<UObject>> selectedObjects;
+	selection->GetSelectedObjects(selectedObjects);
+
+	bool isComponentInSelection = false;
+	for (TWeakObjectPtr<UObject> selectedObject : selectedObjects)
+	{
+		if (selectedObject.Get() == m_selectedComponent.Get())
+		{
+			isComponentInSelection = true;
+			break;
+		}
+	}
+
+	if (!isComponentInSelection)
+	{
+		m_selectedComponent.Reset();
+		m_detailLayout = nullptr;
+		m_logicGraphEditor.Reset();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -36,6 +36,8 @@ private:
 
 	void _MakeDirty();
 
+	void _OnSelectionChanged(UObject* _object);
+
 	TWeakObjectPtr<ULogicBlocksComponent> m_selectedComponent;
 	TWeakPtr<SGraphEditor> m_logicGraphEditor;
 	IDetailLayoutBuilder* m_detailLayout = nullptr;
