@@ -18,6 +18,7 @@
 #include <GenericCommands.h>
 #include <ScopedTransaction.h>
 #include <BlueprintEditorUtils.h>
+#include <Editor.h>
 
 #include <LogicBlocksComponent.h>
 #include <LogicInputBlock.h>
@@ -140,9 +141,12 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 				TArray<UObject*> a;
 				a.Add(logicBlock.Get());
-				IDetailPropertyRow* propertyRow = inputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
-				group.AddPropertyRow(propertyRow->GetPropertyHandle().ToSharedRef());
-				propertyRow->Visibility(EVisibility::Hidden);
+				IDetailPropertyRow* invisiblePropertyRow = inputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
+				IDetailPropertyRow& actualPropertyRow = group.AddPropertyRow(invisiblePropertyRow->GetPropertyHandle().ToSharedRef());
+				invisiblePropertyRow->Visibility(EVisibility::Hidden);
+
+				actualPropertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+				actualPropertyRow.GetPropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
 			}
 		}
 	}
@@ -183,7 +187,7 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 			]
 		];
 
-		// INPUT BLOCKS LIST
+		// OUTPUT BLOCKS LIST
 		for (TWeakObjectPtr<ALogicOutputBlock> logicBlock : m_selectedComponent->GetOutputBlocks())
 		{
 			check(logicBlock.Get());
@@ -225,9 +229,12 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 				TArray<UObject*> a;
 				a.Add(logicBlock.Get());
-				IDetailPropertyRow* propertyRow = outputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
-				group.AddPropertyRow(propertyRow->GetPropertyHandle().ToSharedRef());
-				propertyRow->Visibility(EVisibility::Hidden);
+				IDetailPropertyRow* invisiblePropertyRow = outputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
+				IDetailPropertyRow& actualPropertyRow = group.AddPropertyRow(invisiblePropertyRow->GetPropertyHandle().ToSharedRef());
+				invisiblePropertyRow->Visibility(EVisibility::Hidden);
+
+				actualPropertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+				actualPropertyRow.GetPropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
 			}
 		}
 	}
@@ -271,6 +278,16 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 			];
 		}
 	}
+}
+
+FLogicBlocksDetailsCustomization::FLogicBlocksDetailsCustomization()
+{
+	GEditor->OnBlueprintCompiled().AddRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty);
+}
+
+FLogicBlocksDetailsCustomization::~FLogicBlocksDetailsCustomization()
+{
+	GEditor->OnBlueprintCompiled().RemoveAll(this);
 }
 
 bool FLogicBlocksDetailsCustomization::_CanCreateInput() const
@@ -393,6 +410,9 @@ bool FLogicBlocksDetailsCustomization::_CanDeleteNodes()
 
 void FLogicBlocksDetailsCustomization::_MakeDirty()
 {
+	if (!m_detailLayout)
+		return;
+
 	m_detailLayout->ForceRefreshDetails();
 }
 

@@ -15,6 +15,7 @@ public:
 	ALogicInputBlock();
 
 	UFUNCTION(BlueprintNativeEvent) bool Evaluate();
+	UFUNCTION(BlueprintImplementableEvent) void EditorTick(float _deltaTime);
 
 
 protected:

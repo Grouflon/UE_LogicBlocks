@@ -12,9 +12,14 @@ class FLogicBlocksDetailsCustomization : public IDetailCustomization
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
+	FLogicBlocksDetailsCustomization();
+	virtual ~FLogicBlocksDetailsCustomization();
+
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 
 private:
+	
+
 	bool _CanCreateInput() const;
 	void _CreateInput();
 	void _RemoveInput(TWeakObjectPtr<ALogicInputBlock> _input);

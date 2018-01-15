@@ -259,6 +259,16 @@ void ULogicBlocksComponent::_EditorTick(float _deltaTime)
 			m_logicOutputs.RemoveAt(i);
 		}
 	}
+
+	// EDITOR TICK
+	for (auto input : m_logicInputs)
+	{
+		input->EditorTick(_deltaTime);
+	}
+	for (auto input : m_logicOutputs)
+	{
+		input->EditorTick(_deltaTime);
+	}
 }
 
 ULogicGraphNode* ULogicNode::GetGraphNode() const
