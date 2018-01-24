@@ -265,9 +265,9 @@ void ULogicBlocksComponent::_EditorTick(float _deltaTime)
 	{
 		input->EditorTick(_deltaTime);
 	}
-	for (auto input : m_logicOutputs)
+	for (auto output : m_logicOutputs)
 	{
-		input->EditorTick(_deltaTime);
+		output->EditorTick(_deltaTime);
 	}
 }
 

@@ -26,6 +26,10 @@
 #include <LogicOutputBlock.h>
 #include <LogicGraph.h>
 
+#if GRAPH_REFERENCELEAK_FIX
+#include <LevelEditor.h>
+#endif
+
 #define LOCTEXT_NAMESPACE "LogicBlocks"
 
 TSharedRef<IDetailCustomization> FLogicBlocksDetailsCustomization::MakeInstance()
@@ -60,6 +64,12 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 	if (!m_selectedComponent.Get())
 		return;
+
+#if GRAPH_REFERENCELEAK_FIX
+	FLevelEditorModule& levelEditorModule =	FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	levelEditorModule.OnMapChanged().RemoveAll(this);
+	levelEditorModule.OnMapChanged().AddRaw(this, &FLogicBlocksDetailsCustomization::_OnMapChanged);
+#endif
 
 	// INPUT BLOCKS
 	{
@@ -267,6 +277,13 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 			m_logicGraphEditor = TWeakPtr<SGraphEditor>(graphEditor);
 
+#if GRAPH_REFERENCELEAK_FIX
+			m_graphEditorContainer = SNew(SBox)
+			[
+				graphEditor.ToSharedRef()
+			];
+#endif
+
 			FText t = FText::FromString(TEXT("Graph"));
 			logicCategory.AddCustomRow(t)
 			[
@@ -274,7 +291,11 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 				.VAlign(VAlign_Fill)
 				.HeightOverride(300.f)
 				[
+#if GRAPH_REFERENCELEAK_FIX
+					m_graphEditorContainer.ToSharedRef()
+#else
 					graphEditor.ToSharedRef()
+#endif
 				]
 			];
 		}
@@ -292,6 +313,14 @@ FLogicBlocksDetailsCustomization::~FLogicBlocksDetailsCustomization()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
 	GEditor->OnBlueprintCompiled().RemoveAll(this);
+
+#if GRAPH_REFERENCELEAK_FIX
+	FLevelEditorModule* levelEditorModule =	FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
+	if (levelEditorModule != nullptr)
+	{
+		levelEditorModule->OnMapChanged().RemoveAll(this);
+	}
+#endif
 }
 
 bool FLogicBlocksDetailsCustomization::_CanCreateInput() const
@@ -448,5 +477,12 @@ void FLogicBlocksDetailsCustomization::_OnSelectionChanged(UObject* _object)
 		m_logicGraphEditor.Reset();
 	}
 }
+
+#if GRAPH_REFERENCELEAK_FIX
+void FLogicBlocksDetailsCustomization::_OnMapChanged(UWorld* _newWorld, EMapChangeType _mapChangeType)
+{
+	m_graphEditorContainer->SetContent(SNullWidget::NullWidget);
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

@@ -18,7 +18,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent) void TickValidity(float DeltaTime);
 	UFUNCTION(BlueprintNativeEvent) void EndValidity();
 
-	UFUNCTION(BlueprintImplementableEvent) void EditorTick(float _deltaTime);
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor) void EditorTick(float _deltaSeconds);
 
 protected:
 	virtual void BeginValidity_Implementation();
