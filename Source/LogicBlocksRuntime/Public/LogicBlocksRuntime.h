@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ModuleManager.h"
 
-class FLogicBlocksModule : public IModuleInterface
+class FLogicBlocksRuntimeModule : public IModuleInterface
 {
 public:
 

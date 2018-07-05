@@ -7,7 +7,7 @@
 #include "LogicOutputBlock.generated.h"
 
 UCLASS(abstract)
-class LOGICBLOCKS_API ALogicOutputBlock : public AActor
+class LOGICBLOCKSRUNTIME_API ALogicOutputBlock : public AActor
 {
 	GENERATED_BODY()
 	

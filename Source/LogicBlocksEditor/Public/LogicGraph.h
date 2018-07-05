@@ -99,7 +99,7 @@ public:
  * 
  */
 UCLASS()
-class LOGICBLOCKS_API ULogicGraph : public UEdGraph
+class LOGICBLOCKSEDITOR_API ULogicGraph : public UEdGraph
 {
 	GENERATED_BODY()
 

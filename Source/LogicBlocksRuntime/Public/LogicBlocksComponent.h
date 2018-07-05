@@ -4,11 +4,11 @@
 
 class ALogicInputBlock;
 class ALogicOutputBlock;
-class ULogicGraph;
-class ULogicGraphNode;
 class ULogicNode;
 class ULogicExpressionNode;
 class ULogicOutputNode;
+
+class ULogicGraph;
 
 #include <CoreMinimal.h>
 #include <Components/ActorComponent.h>
@@ -22,16 +22,16 @@ class ULogicNode : public UObject
 	GENERATED_BODY()
 
 public:
-	ULogicGraphNode* GetGraphNode() const;
-	void SetupGraphNode(UEdGraph* _graph);
+	//ULogicGraphNode* GetGraphNode() const;
+	//void SetupGraphNode(UEdGraph* _graph);
 
 	virtual void BeginDestroy() override;
 
-protected:
+/*protected:
 	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) { return nullptr; }
 
 private:
-	UPROPERTY() ULogicGraphNode* m_graphNode = nullptr;
+	UPROPERTY() ULogicGraphNode* m_graphNode = nullptr;*/
 };
 
 
@@ -56,7 +56,7 @@ public:
 	UPROPERTY() ALogicInputBlock* Input = nullptr;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
+	//virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 
 };
 
@@ -72,7 +72,7 @@ public:
 	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
+	//virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
 
 
@@ -87,7 +87,7 @@ public:
 	UPROPERTY() TArray<ULogicExpressionNode*> Operands;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
+	//virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
 
 
@@ -105,7 +105,7 @@ public:
 	UPROPERTY() ULogicExpressionNode* Expression;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
+	//virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 };
 
 
@@ -121,7 +121,7 @@ public:
 	UPROPERTY() ALogicOutputBlock* Output;
 
 protected:
-	virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
+	//virtual ULogicGraphNode* _CreateGraphNode(UEdGraph* _graph) override;
 
 private:
 	bool m_previousEvaluation = false;
@@ -129,7 +129,7 @@ private:
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class LOGICBLOCKS_API ULogicBlocksComponent : public UActorComponent
+class LOGICBLOCKSRUNTIME_API ULogicBlocksComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -158,8 +158,6 @@ public:
 	// When not in Advanced Mode, All Inputs will be combined with an AND operation, and the result of this will trigger all Outputs
 	UPROPERTY(EditAnywhere, DisplayName = "Advanced Mode") bool IsAdvancedModeEnabled = false;
 
-	ULogicGraph* GetLogicGraph() const;
-
 	template<class T>
 	T* ConstructLogicNode(TSubclassOf<ULogicNode> _logicNodeClass = T::StaticClass())
 	{
@@ -178,6 +176,10 @@ public:
 
 	void DestroyLogicNode(ULogicNode* _node);
 
+#if WITH_EDITOR
+	UPROPERTY() ULogicGraph* LogicGraph = nullptr;
+#endif
+
 private:
 	void _EditorTick(float _deltaTime);
 
@@ -186,7 +188,6 @@ private:
 
 	bool m_previousValidity = false;
 
-	UPROPERTY() ULogicGraph* m_logicGraph = nullptr;
 
 	UPROPERTY() TArray<ULogicNode*> m_logicNodes;
 	UPROPERTY() TArray<ULogicOutputNode*> m_logicOutputNodes;

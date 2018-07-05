@@ -15,8 +15,13 @@
 	"Installed": true,
 	"Modules": [
 		{
-			"Name": "LogicBlocks",
+			"Name": "LogicBlocksRuntime",
 			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "LogicBlocksEditor",
+			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}
 	]

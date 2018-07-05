@@ -3,12 +3,12 @@
 #include "LogicBlocksComponent.h"
 
 #include <Engine/World.h>
-#include <BlueprintEditorUtils.h>
+//#include <BlueprintEditorUtils.h>
 
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
-#include <LogicGraph.h>
-#include <LogicGraphSchema.h>
+//#include <LogicGraph.h>
+//#include <LogicGraphSchema.h>
 
 // Sets default values for this component's properties
 ULogicBlocksComponent::ULogicBlocksComponent()
@@ -17,9 +17,6 @@ ULogicBlocksComponent::ULogicBlocksComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
-
-	m_logicGraph = CreateDefaultSubobject<ULogicGraph>(TEXT("LogicGraph"));
-	m_logicGraph->Schema = ULogicGraphSchema::StaticClass();
 }
 
 
@@ -218,11 +215,6 @@ const TArray<TWeakObjectPtr<ALogicOutputBlock>>& ULogicBlocksComponent::GetOutpu
 	return m_logicOutputs;
 }
 
-ULogicGraph* ULogicBlocksComponent::GetLogicGraph() const
-{
-	return m_logicGraph;
-}
-
 void ULogicBlocksComponent::DestroyLogicNode(ULogicNode* _node)
 {
 	check(_node->IsValidLowLevel());
@@ -271,7 +263,7 @@ void ULogicBlocksComponent::_EditorTick(float _deltaTime)
 	}
 }
 
-ULogicGraphNode* ULogicNode::GetGraphNode() const
+/*ULogicGraphNode* ULogicNode::GetGraphNode() const
 {
 	return m_graphNode;
 }
@@ -283,15 +275,15 @@ void ULogicNode::SetupGraphNode(UEdGraph* _graph)
 	m_graphNode = _CreateGraphNode(_graph);
 	check(m_graphNode);
 	m_graphNode->SetLogicNode(this);
-}
+}*/
 
 void ULogicNode::BeginDestroy()
 {
-	if (m_graphNode)
+/*	if (m_graphNode)
 	{
 		FBlueprintEditorUtils::RemoveNode(NULL, m_graphNode, true);
 		m_graphNode = nullptr;
-	}
+	}*/
 
 	Super::BeginDestroy();
 }
@@ -301,13 +293,13 @@ bool ULogicInputNode::Evaluate() const
 	return Input ? Input->Evaluate() : false;
 }
 
-ULogicGraphNode* ULogicInputNode::_CreateGraphNode(UEdGraph* _graph)
+/*ULogicGraphNode* ULogicInputNode::_CreateGraphNode(UEdGraph* _graph)
 {
 	FGraphNodeCreator<ULogicInputGraphNode> nodeCreator(*_graph);
 	ULogicInputGraphNode* graphNode = nodeCreator.CreateNode();
 	nodeCreator.Finalize();
 	return graphNode;
-}
+}*/
 
 bool ULogicANDNode::Evaluate() const
 {
@@ -327,13 +319,13 @@ bool ULogicANDNode::Evaluate() const
 	return hasOperands ? result : true;
 }
 
-ULogicGraphNode* ULogicANDNode::_CreateGraphNode(UEdGraph* _graph)
+/*ULogicGraphNode* ULogicANDNode::_CreateGraphNode(UEdGraph* _graph)
 {
 	FGraphNodeCreator<ULogicANDGraphNode> nodeCreator(*_graph);
 	ULogicANDGraphNode* graphNode = nodeCreator.CreateNode();
 	nodeCreator.Finalize();
 	return graphNode;
-}
+}*/
 
 bool ULogicORNode::Evaluate() const
 {
@@ -353,13 +345,13 @@ bool ULogicORNode::Evaluate() const
 	return hasOperands ? result : true;
 }
 
-ULogicGraphNode* ULogicORNode::_CreateGraphNode(UEdGraph* _graph)
+/*ULogicGraphNode* ULogicORNode::_CreateGraphNode(UEdGraph* _graph)
 {
 	FGraphNodeCreator<ULogicORGraphNode> nodeCreator(*_graph);
 	ULogicORGraphNode* graphNode = nodeCreator.CreateNode();
 	nodeCreator.Finalize();
 	return graphNode;
-}
+}*/
 
 void ULogicOutputNode::Tick(float _dt)
 {
@@ -385,7 +377,7 @@ void ULogicOutputNode::Tick(float _dt)
 	m_previousEvaluation = evaluation;
 }
 
-ULogicGraphNode* ULogicOutputNode::_CreateGraphNode(UEdGraph* _graph)
+/*ULogicGraphNode* ULogicOutputNode::_CreateGraphNode(UEdGraph* _graph)
 {
 	FGraphNodeCreator<ULogicOutputGraphNode> nodeCreator(*_graph);
 	ULogicOutputGraphNode* graphNode = nodeCreator.CreateNode();
@@ -399,4 +391,4 @@ ULogicGraphNode* ULogicNOTNode::_CreateGraphNode(UEdGraph* _graph)
 	ULogicNOTGraphNode* graphNode = nodeCreator.CreateNode();
 	nodeCreator.Finalize();
 	return graphNode;
-}
+}*/

@@ -2,15 +2,15 @@
 
 using UnrealBuildTool;
 
-public class LogicBlocks : ModuleRules
+public class LogicBlocksRuntime : ModuleRules
 {
-	public LogicBlocks(ReadOnlyTargetRules Target) : base(Target)
+	public LogicBlocksRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
-				"LogicBlocks/Public"
+				"LogicBlocksRuntime/Public"
 				// ... add public include paths required here ...
 			}
 			);
@@ -18,7 +18,7 @@ public class LogicBlocks : ModuleRules
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"LogicBlocks/Private",
+				"LogicBlocksRuntime/Private",
 				// ... add other private include paths required here ...
 			}
 			);
@@ -38,13 +38,6 @@ public class LogicBlocks : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Slate",
-				"SlateCore",
-                "EditorStyle",
-                "PropertyEditor",
-                "UnrealEd",
-                "BlueprintGraph",
-                "GraphEditor"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

@@ -25,6 +25,7 @@
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
 #include <LogicGraph.h>
+#include <LogicGraphSchema.h>
 
 #if GRAPH_REFERENCELEAK_FIX
 #include <LevelEditor.h>
@@ -269,9 +270,18 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 				);
 			}
 
+			if (m_selectedComponent->LogicGraph == nullptr)
+			{
+				m_selectedComponent->LogicGraph = NewObject<ULogicGraph>(m_selectedComponent.Get());
+				m_selectedComponent->LogicGraph->Schema = ULogicGraphSchema::StaticClass();
+
+				// TODO: Rebuild graph here
+			}
+			check(m_selectedComponent->LogicGraph);
+
 			TSharedPtr<SGraphEditor> graphEditor = SNew(SGraphEditor)
 				.AdditionalCommands(m_graphEditorCommands)
-				.GraphToEdit(m_selectedComponent->GetLogicGraph())
+				.GraphToEdit(m_selectedComponent->LogicGraph)
 				.IsEditable(true)
 				.AutoExpandActionMenu(true);
 
@@ -304,7 +314,9 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 FLogicBlocksDetailsCustomization::FLogicBlocksDetailsCustomization()
 {
-	GEditor->OnBlueprintCompiled().AddRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty);
+	// NOTE(Remi|2018/01/31): Outdated objects just stand around in memory with outdated m_detailLayout pointers and get this delegate broadcasted.
+	// Don't see how to prevent that so we deactivate the refresh on blueprint compile feature for now.
+	//GEditor->OnBlueprintCompiled().AddRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty);
 
 	USelection::SelectionChangedEvent.AddRaw(this, &FLogicBlocksDetailsCustomization::_OnSelectionChanged);
 }
@@ -312,7 +324,7 @@ FLogicBlocksDetailsCustomization::FLogicBlocksDetailsCustomization()
 FLogicBlocksDetailsCustomization::~FLogicBlocksDetailsCustomization()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	GEditor->OnBlueprintCompiled().RemoveAll(this);
+	//GEditor->OnBlueprintCompiled().RemoveAll(this);
 
 #if GRAPH_REFERENCELEAK_FIX
 	FLevelEditorModule* levelEditorModule =	FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
@@ -481,7 +493,10 @@ void FLogicBlocksDetailsCustomization::_OnSelectionChanged(UObject* _object)
 #if GRAPH_REFERENCELEAK_FIX
 void FLogicBlocksDetailsCustomization::_OnMapChanged(UWorld* _newWorld, EMapChangeType _mapChangeType)
 {
-	m_graphEditorContainer->SetContent(SNullWidget::NullWidget);
+	if (m_graphEditorContainer.IsValid())
+	{
+		m_graphEditorContainer->SetContent(SNullWidget::NullWidget);
+	}
 }
 #endif
 
