@@ -5,6 +5,7 @@
 #include <Widgets/Text/STextBlock.h>
 #include <Widgets/Input/SButton.h>
 #include <Widgets/Input/SEditableTextBox.h>
+#include <Widgets/SBoxPanel.h>
 #include <DetailLayoutBuilder.h>
 #include <DetailCategoryBuilder.h>
 #include <DetailWidgetRow.h>
@@ -17,11 +18,18 @@
 #include <GenericCommands.h>
 #include <ScopedTransaction.h>
 #include <BlueprintEditorUtils.h>
+#include <Editor.h>
+#include <Engine/Selection.h>
 
 #include <LogicBlocksComponent.h>
 #include <LogicInputBlock.h>
 #include <LogicOutputBlock.h>
 #include <LogicGraph.h>
+#include <LogicGraphSchema.h>
+
+#if GRAPH_REFERENCELEAK_FIX
+#include <LevelEditor.h>
+#endif
 
 #define LOCTEXT_NAMESPACE "LogicBlocks"
 
@@ -57,6 +65,12 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 	if (!m_selectedComponent.Get())
 		return;
+
+#if GRAPH_REFERENCELEAK_FIX
+	FLevelEditorModule& levelEditorModule =	FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	levelEditorModule.OnMapChanged().RemoveAll(this);
+	levelEditorModule.OnMapChanged().AddRaw(this, &FLogicBlocksDetailsCustomization::_OnMapChanged);
+#endif
 
 	// INPUT BLOCKS
 	{
@@ -139,9 +153,12 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 				TArray<UObject*> a;
 				a.Add(logicBlock.Get());
-				IDetailPropertyRow* propertyRow = inputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
-				group.AddPropertyRow(propertyRow->GetPropertyHandle().ToSharedRef());
-				propertyRow->Visibility(EVisibility::Hidden);
+				IDetailPropertyRow* invisiblePropertyRow = inputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
+				IDetailPropertyRow& actualPropertyRow = group.AddPropertyRow(invisiblePropertyRow->GetPropertyHandle().ToSharedRef());
+				invisiblePropertyRow->Visibility(EVisibility::Hidden);
+
+				actualPropertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+				actualPropertyRow.GetPropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
 			}
 		}
 	}
@@ -182,7 +199,7 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 			]
 		];
 
-		// INPUT BLOCKS LIST
+		// OUTPUT BLOCKS LIST
 		for (TWeakObjectPtr<ALogicOutputBlock> logicBlock : m_selectedComponent->GetOutputBlocks())
 		{
 			check(logicBlock.Get());
@@ -224,35 +241,98 @@ void FLogicBlocksDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 				TArray<UObject*> a;
 				a.Add(logicBlock.Get());
-				IDetailPropertyRow* propertyRow = outputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
-				group.AddPropertyRow(propertyRow->GetPropertyHandle().ToSharedRef());
-				propertyRow->Visibility(EVisibility::Hidden);
+				IDetailPropertyRow* invisiblePropertyRow = outputsCategory.AddExternalObjectProperty(a, TestProperty->GetFName());
+				IDetailPropertyRow& actualPropertyRow = group.AddPropertyRow(invisiblePropertyRow->GetPropertyHandle().ToSharedRef());
+				invisiblePropertyRow->Visibility(EVisibility::Hidden);
+
+				actualPropertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+				actualPropertyRow.GetPropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
 			}
 		}
 	}
 
+	// LOGIC
 	{
-		if (!m_graphEditorCommands.IsValid())
-		{
-			m_graphEditorCommands = MakeShareable(new FUICommandList);
-
-			m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
-				FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
-				FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
-			);
-		}
-
-		m_logicGraphEditor = SNew(SGraphEditor)
-			.AdditionalCommands(m_graphEditorCommands)
-			.GraphToEdit(m_selectedComponent->GetLogicGraph());
-
 		IDetailCategoryBuilder& logicCategory = DetailLayout.EditCategory("Logic", FText::GetEmpty(), ECategoryPriority::Important);
-		FText t = FText::FromString(TEXT("Graph"));
-		logicCategory.AddCustomRow(t)
-		[
-			m_logicGraphEditor.ToSharedRef()
-		];
+
+		IDetailPropertyRow& propertyRow = logicCategory.AddProperty(TEXT("IsAdvancedModeEnabled"));
+		propertyRow.GetPropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FLogicBlocksDetailsCustomization::_MakeDirty));
+
+		if (m_selectedComponent->IsAdvancedModeEnabled)
+		{
+			if (!m_graphEditorCommands.IsValid())
+			{
+				m_graphEditorCommands = MakeShareable(new FUICommandList);
+
+				m_graphEditorCommands->MapAction(FGenericCommands::Get().Delete,
+					FExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_DeleteSelectedNodes),
+					FCanExecuteAction::CreateSP(this, &FLogicBlocksDetailsCustomization::_CanDeleteNodes)
+				);
+			}
+
+			if (m_selectedComponent->LogicGraph == nullptr)
+			{
+				m_selectedComponent->LogicGraph = NewObject<ULogicGraph>(m_selectedComponent.Get());
+				m_selectedComponent->LogicGraph->Schema = ULogicGraphSchema::StaticClass();
+
+				// TODO: Rebuild graph here
+			}
+			check(m_selectedComponent->LogicGraph);
+
+			TSharedPtr<SGraphEditor> graphEditor = SNew(SGraphEditor)
+				.AdditionalCommands(m_graphEditorCommands)
+				.GraphToEdit(m_selectedComponent->LogicGraph)
+				.IsEditable(true)
+				.AutoExpandActionMenu(true);
+
+			m_logicGraphEditor = TWeakPtr<SGraphEditor>(graphEditor);
+
+#if GRAPH_REFERENCELEAK_FIX
+			m_graphEditorContainer = SNew(SBox)
+			[
+				graphEditor.ToSharedRef()
+			];
+#endif
+
+			FText t = FText::FromString(TEXT("Graph"));
+			logicCategory.AddCustomRow(t)
+			[
+				SNew(SBox)
+				.VAlign(VAlign_Fill)
+				.HeightOverride(300.f)
+				[
+#if GRAPH_REFERENCELEAK_FIX
+					m_graphEditorContainer.ToSharedRef()
+#else
+					graphEditor.ToSharedRef()
+#endif
+				]
+			];
+		}
 	}
+}
+
+FLogicBlocksDetailsCustomization::FLogicBlocksDetailsCustomization()
+{
+	// NOTE(Remi|2018/01/31): Outdated objects just stand around in memory with outdated m_detailLayout pointers and get this delegate broadcasted.
+	// Don't see how to prevent that so we deactivate the refresh on blueprint compile feature for now.
+	//GEditor->OnBlueprintCompiled().AddRaw(this, &FLogicBlocksDetailsCustomization::_MakeDirty);
+
+	USelection::SelectionChangedEvent.AddRaw(this, &FLogicBlocksDetailsCustomization::_OnSelectionChanged);
+}
+
+FLogicBlocksDetailsCustomization::~FLogicBlocksDetailsCustomization()
+{
+	USelection::SelectionChangedEvent.RemoveAll(this);
+	//GEditor->OnBlueprintCompiled().RemoveAll(this);
+
+#if GRAPH_REFERENCELEAK_FIX
+	FLevelEditorModule* levelEditorModule =	FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
+	if (levelEditorModule != nullptr)
+	{
+		levelEditorModule->OnMapChanged().RemoveAll(this);
+	}
+#endif
 }
 
 bool FLogicBlocksDetailsCustomization::_CanCreateInput() const
@@ -340,16 +420,18 @@ void FLogicBlocksDetailsCustomization::_OnActorNameCommited(const FText& _text, 
 
 void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 {
+	check(m_logicGraphEditor.IsValid());
+
 	const FScopedTransaction Transaction(LOCTEXT("LogicBlocksDeleteSelectedNode", "Delete Selected Logic Node"));
 
-	ULogicGraph* logicGraph = Cast<ULogicGraph>(m_logicGraphEditor->GetCurrentGraph());
+	ULogicGraph* logicGraph = Cast<ULogicGraph>(m_logicGraphEditor.Pin()->GetCurrentGraph());
 	check(logicGraph);
 
 	logicGraph->Modify();
 
-	FGraphPanelSelectionSet selectedNodes = m_logicGraphEditor->GetSelectedNodes();
+	FGraphPanelSelectionSet selectedNodes = m_logicGraphEditor.Pin()->GetSelectedNodes();
 
-	m_logicGraphEditor->ClearSelectionSet();
+	m_logicGraphEditor.Pin()->ClearSelectionSet();
 
 	for (FGraphPanelSelectionSet::TConstIterator nodeIt(selectedNodes); nodeIt; ++nodeIt)
 	{
@@ -358,8 +440,6 @@ void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 
 		if (graphNode->CanUserDeleteNode())
 		{
-			FBlueprintEditorUtils::RemoveNode(NULL, graphNode, true);
-
 			ULogicNode* toDeleteNode = graphNode->GetLogicNode();
 			logicGraph->GetLogicBlocksComponent()->DestroyLogicNode(toDeleteNode);
 		}
@@ -368,8 +448,56 @@ void FLogicBlocksDetailsCustomization::_DeleteSelectedNodes()
 
 bool FLogicBlocksDetailsCustomization::_CanDeleteNodes()
 {
-	
-	return m_logicGraphEditor->GetSelectedNodes().Num() > 0;
+	check(m_logicGraphEditor.IsValid());
+
+	return m_logicGraphEditor.Pin()->GetSelectedNodes().Num() > 0;
 }
+
+void FLogicBlocksDetailsCustomization::_MakeDirty()
+{
+	if (!m_detailLayout)
+		return;
+
+	m_detailLayout->ForceRefreshDetails();
+}
+
+void FLogicBlocksDetailsCustomization::_OnSelectionChanged(UObject* _object)
+{
+	if (!m_selectedComponent.Get())
+		return;
+
+	USelection* selection = Cast<USelection>(_object); // WTF unreal ? why not typing the delegate ??
+	check(selection);
+
+	TArray<TWeakObjectPtr<UObject>> selectedObjects;
+	selection->GetSelectedObjects(selectedObjects);
+
+	bool isComponentInSelection = false;
+	for (TWeakObjectPtr<UObject> selectedObject : selectedObjects)
+	{
+		if (selectedObject.Get() == m_selectedComponent.Get())
+		{
+			isComponentInSelection = true;
+			break;
+		}
+	}
+
+	if (!isComponentInSelection)
+	{
+		m_selectedComponent.Reset();
+		m_detailLayout = nullptr;
+		m_logicGraphEditor.Reset();
+	}
+}
+
+#if GRAPH_REFERENCELEAK_FIX
+void FLogicBlocksDetailsCustomization::_OnMapChanged(UWorld* _newWorld, EMapChangeType _mapChangeType)
+{
+	if (m_graphEditorContainer.IsValid())
+	{
+		m_graphEditorContainer->SetContent(SNullWidget::NullWidget);
+	}
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

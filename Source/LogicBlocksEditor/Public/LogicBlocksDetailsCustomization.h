@@ -3,17 +3,29 @@
 class ULogicBlocksComponent;
 class ALogicInputBlock;
 class ALogicOutputBlock;
+class SGraphEditor;
 
 #include <IDetailCustomization.h>
+
+// NOTE(Remi|2018/01/24): Quick temp fix for issue UE-54352
+#define GRAPH_REFERENCELEAK_FIX 1
+
+#if GRAPH_REFERENCELEAK_FIX
+#include <UnrealEdMisc.h>
+#endif
 
 class FLogicBlocksDetailsCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
+	FLogicBlocksDetailsCustomization();
+	virtual ~FLogicBlocksDetailsCustomization();
+
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 
 private:
+
 	bool _CanCreateInput() const;
 	void _CreateInput();
 	void _RemoveInput(TWeakObjectPtr<ALogicInputBlock> _input);
@@ -28,9 +40,18 @@ private:
 	void _DeleteSelectedNodes();
 	bool _CanDeleteNodes();
 
+	void _MakeDirty();
+
+	void _OnSelectionChanged(UObject* _object);
+
 	TWeakObjectPtr<ULogicBlocksComponent> m_selectedComponent;
-	TSharedPtr<SGraphEditor> m_logicGraphEditor;
+	TWeakPtr<SGraphEditor> m_logicGraphEditor;
 	IDetailLayoutBuilder* m_detailLayout = nullptr;
 
 	TSharedPtr<FUICommandList> m_graphEditorCommands;
+
+#if GRAPH_REFERENCELEAK_FIX
+	void _OnMapChanged(UWorld* _newWorld, EMapChangeType _mapChangeType);
+	TSharedPtr<SBox> m_graphEditorContainer;
+#endif
 };

@@ -7,7 +7,7 @@
 #include "LogicOutputBlock.generated.h"
 
 UCLASS(abstract)
-class LOGICBLOCKS_API ALogicOutputBlock : public AActor
+class LOGICBLOCKSRUNTIME_API ALogicOutputBlock : public AActor
 {
 	GENERATED_BODY()
 	
@@ -17,6 +17,8 @@ public:
 	UFUNCTION(BlueprintNativeEvent) void BeginValidity();
 	UFUNCTION(BlueprintNativeEvent) void TickValidity(float DeltaTime);
 	UFUNCTION(BlueprintNativeEvent) void EndValidity();
+
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor) void EditorTick(float _deltaSeconds);
 
 protected:
 	virtual void BeginValidity_Implementation();

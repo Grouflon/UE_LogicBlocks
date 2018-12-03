@@ -11,7 +11,7 @@ class ALogicOutputBlock;
 
 
 USTRUCT()
-struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewNode : public FEdGraphSchemaAction
+struct LOGICBLOCKSEDITOR_API FLogicGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 {
 	GENERATED_BODY()
 
@@ -30,7 +30,7 @@ struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 
 
 USTRUCT()
-struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewInputNode : public FEdGraphSchemaAction
+struct LOGICBLOCKSEDITOR_API FLogicGraphSchemaAction_NewInputNode : public FEdGraphSchemaAction
 {
 	GENERATED_BODY()
 
@@ -48,7 +48,7 @@ struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewInputNode : public FEdGraphSch
 };
 
 USTRUCT()
-struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewOutputNode : public FEdGraphSchemaAction
+struct LOGICBLOCKSEDITOR_API FLogicGraphSchemaAction_NewOutputNode : public FEdGraphSchemaAction
 {
 	GENERATED_BODY()
 
@@ -70,7 +70,7 @@ struct LOGICBLOCKS_API FLogicGraphSchemaAction_NewOutputNode : public FEdGraphSc
  * 
  */
 UCLASS()
-class LOGICBLOCKS_API ULogicGraphSchema : public UEdGraphSchema
+class LOGICBLOCKSEDITOR_API ULogicGraphSchema : public UEdGraphSchema
 {
 	GENERATED_BODY()
 	
@@ -78,6 +78,7 @@ public:
 
 	//~ Begin EdGraphSchema Interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual const FPinConnectionResponse CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const override;
 	virtual bool TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;

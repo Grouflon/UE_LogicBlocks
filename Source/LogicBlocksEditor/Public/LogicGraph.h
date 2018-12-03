@@ -23,7 +23,7 @@ public:
 	ULogicNode* GetLogicNode() const;
 
 private:
-	ULogicNode* m_logicNode = nullptr;
+	UPROPERTY() ULogicNode* m_logicNode = nullptr;
 };
 
 UCLASS(MinimalAPI)
@@ -69,11 +69,37 @@ public:
 	// End of UEdGraphNode interface.
 };
 
+UCLASS(MinimalAPI)
+class ULogicANDGraphNode : public ULogicGraphNode
+{
+	GENERATED_BODY()
+
+public:
+	// UEdGraphNode interface.
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
+	// End of UEdGraphNode interface.
+};
+
+UCLASS(MinimalAPI)
+class ULogicORGraphNode : public ULogicGraphNode
+{
+	GENERATED_BODY()
+
+public:
+	// UEdGraphNode interface.
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* _pin) override;
+	// End of UEdGraphNode interface.
+};
+
 /**
  * 
  */
 UCLASS()
-class LOGICBLOCKS_API ULogicGraph : public UEdGraph
+class LOGICBLOCKSEDITOR_API ULogicGraph : public UEdGraph
 {
 	GENERATED_BODY()
 

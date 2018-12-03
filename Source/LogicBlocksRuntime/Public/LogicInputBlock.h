@@ -7,7 +7,7 @@
 #include "LogicInputBlock.generated.h"
 
 UCLASS(abstract)
-class LOGICBLOCKS_API ALogicInputBlock : public AActor
+class LOGICBLOCKSRUNTIME_API ALogicInputBlock : public AActor
 {
 	GENERATED_BODY()
 	
@@ -15,6 +15,7 @@ public:
 	ALogicInputBlock();
 
 	UFUNCTION(BlueprintNativeEvent) bool Evaluate();
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor) void EditorTick(float _deltaSeconds);
 
 
 protected:

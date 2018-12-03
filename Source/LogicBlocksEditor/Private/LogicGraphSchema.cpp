@@ -4,9 +4,13 @@
 
 #include <UObject/UObjectIterator.h>
 #include <ScopedTransaction.h>
+#include <MultiBoxBuilder.h>
+#include <GraphEditorActions.h>
 
 #include <LogicGraph.h>
 #include <LogicBlocksComponent.h>
+#include <LogicInputBlock.h>
+#include <LogicOutputBlock.h>
 
 #define LOCTEXT_NAMESPACE "LogicBlocks"
 
@@ -126,6 +130,32 @@ void ULogicGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Context
 	}
 }
 
+void ULogicGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
+{
+	if (InGraphPin)
+	{
+		MenuBuilder->BeginSection("SoundCueGraphSchemaPinActions", LOCTEXT("PinActionsMenuHeader", "Pin Actions"));
+		{
+			// Only display the 'Break Link' option if there is a link to break!
+			if (InGraphPin->LinkedTo.Num() > 0)
+			{
+				MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakPinLinks);
+			}
+		}
+		MenuBuilder->EndSection();
+	}
+	else if (InGraphNode)
+	{
+		MenuBuilder->BeginSection("SoundCueGraphSchemaNodeActions", LOCTEXT("NodeActionsMenuHeader", "Node Actions"));
+		{
+			MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakNodeLinks);
+		}
+		MenuBuilder->EndSection();
+	}
+
+	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
+}
+
 const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const
 {
 	// Make sure the pins are not on the same node
@@ -146,13 +176,13 @@ const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGra
 	/*if (ConnectionCausesLoop(InputPin, OutputPin))
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("ConnectionLoop", "Connection would cause loop"));
-	}
+	}*/
 
 	// Break existing connections on inputs only - multiple output connections are acceptable
 	if (InputPin->LinkedTo.Num() > 0)
 	{
 		ECanCreateConnectionResponse ReplyBreakOutputs;
-		if (InputPin == PinA)
+		if (InputPin == A)
 		{
 			ReplyBreakOutputs = CONNECT_RESPONSE_BREAK_OTHERS_A;
 		}
@@ -161,7 +191,7 @@ const FPinConnectionResponse ULogicGraphSchema::CanCreateConnection(const UEdGra
 			ReplyBreakOutputs = CONNECT_RESPONSE_BREAK_OTHERS_B;
 		}
 		return FPinConnectionResponse(ReplyBreakOutputs, LOCTEXT("ConnectionReplace", "Replace existing connections"));
-	}*/
+	}
 
 	return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
 }
@@ -247,10 +277,7 @@ void ULogicGraphSchema::_GetAllNodeActions(FGraphActionMenuBuilder& ActionMenuBu
 		if (nodeClass == ULogicOutputNode::StaticClass())
 			continue;
 
-		if (nodeClass != ULogicNOTNode::StaticClass()) // DEBUG
-			continue;
-
-		ULogicNode* LogicNode = nodeClass->GetDefaultObject<ULogicNode>();
+		//ULogicNode* LogicNode = nodeClass->GetDefaultObject<ULogicNode>();
 
 		// when dragging from an output pin you can create anything but a wave player
 		//if (!ActionMenuBuilder.FromPin || ActionMenuBuilder.FromPin->Direction == EGPD_Input || SoundNode->GetMaxChildNodes() > 0)
